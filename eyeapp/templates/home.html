@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dry Eye Detection with Notifications</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f5132 0%, #ffffff 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background Animation Layers */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                45deg,
+                rgba(15, 81, 50, 0.1) 0%,
+                rgba(25, 135, 84, 0.05) 25%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(15, 81, 50, 0.05) 75%,
+                rgba(25, 135, 84, 0.1) 100%
+            );
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease-in-out infinite;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                circle at 20% 80%,
+                rgba(25, 135, 84, 0.03) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                circle at 80% 20%,
+                rgba(15, 81, 50, 0.04) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                circle at 40% 40%,
+                rgba(255, 255, 255, 0.02) 0%,
+                transparent 50%
+            );
+            animation: lightPulse 15s ease-in-out infinite alternate;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Floating Shapes */
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(25, 135, 84, 0.08), rgba(15, 81, 50, 0.05));
+            backdrop-filter: blur(40px);
+            animation: float 25s ease-in-out infinite;
+        }
+
+        .shape:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: 10%;
+            left: -5%;
+            animation-delay: 0s;
+            animation-duration: 30s;
+        }
+
+        .shape:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            top: 60%;
+            right: -3%;
+            animation-delay: -8s;
+            animation-duration: 35s;
+        }
+
+        .shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 30%;
+            left: 70%;
+            animation-delay: -15s;
+            animation-duration: 28s;
+        }
+
+        .shape:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 10%;
+            left: 20%;
+            animation-delay: -22s;
+            animation-duration: 32s;
+        }
+
+        .shape:nth-child(5) {
+            width: 180px;
+            height: 180px;
+            top: 70%;
+            left: 50%;
+            animation-delay: -10s;
+            animation-duration: 27s;
+        }
+
+        /* Geometric Shapes */
+        .geometric-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -4;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .geo-shape {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(25, 135, 84, 0.02));
+            backdrop-filter: blur(20px);
+            animation: drift 40s linear infinite;
+        }
+
+        .geo-shape.triangle {
+            width: 0;
+            height: 0;
+            border-left: 60px solid transparent;
+            border-right: 60px solid transparent;
+            border-bottom: 104px solid rgba(15, 81, 50, 0.03);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .geo-shape.square {
+            width: 80px;
+            height: 80px;
+            background: rgba(25, 135, 84, 0.02);
+            border-radius: 8px;
+            top: 50%;
+            right: 15%;
+            animation-delay: -12s;
+            animation-duration: 45s;
+        }
+
+        .geo-shape.circle-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            top: 80%;
+            left: 60%;
+            animation-delay: -25s;
+            animation-duration: 38s;
+        }
+
+        /* Animation Keyframes */
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes lightPulse {
+            0% {
+                opacity: 0.3;
+            }
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-20px) translateX(10px) rotate(90deg);
+            }
+            50% {
+                transform: translateY(-10px) translateX(-15px) rotate(180deg);
+            }
+            75% {
+                transform: translateY(-25px) translateX(5px) rotate(270deg);
+            }
+        }
+
+        @keyframes drift {
+            0% {
+                transform: translateX(-100px) translateY(0px) rotate(0deg);
+            }
+            100% {
+                transform: translateX(calc(100vw + 100px)) translateY(-50px) rotate(360deg);
+            }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f5132;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            color: #198754;
+        }
+
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav a:hover {
+            color: #0f5132;
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 20px;
+            scroll-margin-top: 110px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #0f5132;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: #198754;
+        }
+
+        .card h3 {
+            color: #0f5132;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .camera-card {
+            grid-column: 1 / -1;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto 1.5rem;
+        }
+
+        #video {
+            width: 100%;
+            border-radius: 15px;
+            background: #333;
+            transform: scaleX(-1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #4CAF50;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            backdrop-filter: blur(5px);
+        }
+
+        .status-box {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1.5rem 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+
+        .status-warning {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border-color: #f5c6cb;
+            animation: pulse 1s infinite;
+        }
+
+        .status-blink {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            border-color: #ffeaa7;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f5132;
+        }
+
+        .timer {
+            font-size: 3rem;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #0f5132;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .instruction-box {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-left: 5px solid #2196F3;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            animation: slideIn 0.5s;
+            border: 1px solid rgba(33, 150, 243, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+            flex: 1;
+            min-width: 150px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.stop {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+        }
+
+        button.stop:hover {
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+        }
+
+        button.reset {
+            background: linear-gradient(135deg, #ffc107, #ff8c00);
+        }
+
+        button.reset:hover {
+            box-shadow: 0 8px 25px rgba(255, 193, 7, 0.4);
+        }
+
+        .face-indicator {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .indicator-light {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #adb5bd;
+            transition: all 0.3s;
+        }
+
+        .indicator-light.active {
+            background: #28a745;
+            box-shadow: 0 0 15px #28a745;
+            animation: glow 2s infinite;
+        }
+
+        .indicator-light.blink {
+            background: #ffc107;
+            box-shadow: 0 0 15px #ffc107;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .history-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .log-entry {
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            color: #495057;
+            transition: background 0.2s;
+        }
+
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-item i {
+            font-size: 1.5rem;
+            color: #198754;
+        }
+
+        .footer {
+            background: rgba(15, 81, 50, 0.9);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            backdrop-filter: blur(10px);
+            scroll-margin-top: 110px;
+        }
+
+        .footer .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h3 {
+            color: #ffffff;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .footer-section p {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+
+        .copyright {
+            text-align: center;
+            padding: 1rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .main-content {
+                padding: 1rem 15px;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                min-width: auto;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scroll Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-on-scroll.animate-fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .animate-on-scroll.animate-slide-up {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .animate-on-scroll.animate-slide-left {
+            opacity: 0;
+            transform: translateX(-40px);
+        }
+
+        .animate-on-scroll.animate-slide-right {
+            opacity: 0;
+            transform: translateX(40px);
+        }
+
+        .animate-on-scroll.animate-scale {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .animate-on-scroll.animate {
+            opacity: 1;
+            transform: translateY(0) translateX(0) scale(1);
+        }
+
+        .animate-on-scroll.animate-delay-1 {
+            transition-delay: 0.1s;
+        }
+
+        .animate-on-scroll.animate-delay-2 {
+            transition-delay: 0.2s;
+        }
+
+        .animate-on-scroll.animate-delay-3 {
+            transition-delay: 0.3s;
+        }
+
+        .animate-on-scroll.animate-delay-4 {
+            transition-delay: 0.4s;
+        }
+
+        .animate-on-scroll.animate-delay-5 {
+            transition-delay: 0.5s;
+        }
+
+        /* Stagger animations for grid items */
+        .animate-stagger > * {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-stagger.animate > *:nth-child(1) { transition-delay: 0.1s; }
+        .animate-stagger.animate > *:nth-child(2) { transition-delay: 0.2s; }
+        .animate-stagger.animate > *:nth-child(3) { transition-delay: 0.3s; }
+        .animate-stagger.animate > *:nth-child(4) { transition-delay: 0.4s; }
+        .animate-stagger.animate > *:nth-child(5) { transition-delay: 0.5s; }
+        .animate-stagger.animate > *:nth-child(6) { transition-delay: 0.6s; }
+
+        .animate-stagger.animate > * {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Animation Layers -->
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="geometric-shapes">
+        <div class="geo-shape triangle"></div>
+        <div class="geo-shape square"></div>
+        <div class="geo-shape circle-small"></div>
+    </div>
+
+    <header class="header">
+        <div class="container">
+            <a href="/" class="logo">
+                <i class="fas fa-eye"></i>
+                EyeCare AI
+            </a>
+            <nav class="nav">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#footer">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content" id="main-content">
+        <section class="hero animate-on-scroll animate-fade-in">
+            <h1><i class="fas fa-eye"></i> AI Dry Eye Detection</h1>
+            <p>Advanced computer vision technology to monitor your eye health and prevent dry eyes. Get real-time alerts and personalized recommendations for better eye care.</p>
+        </section>
+
+        <section class="card animate-on-scroll animate-scale animate-delay-1" id="how-it-works" style="margin-bottom: 2rem;">
+            <h2><i class="fas fa-cogs"></i> How It Works</h2>
+            <div class="features-grid animate-stagger" style="grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 1rem;">
+                <div class="feature-item">
+                    <i class="fas fa-video"></i>
+                    <div>
+                        <strong>Step 1: Activate Camera</strong><br>
+                        <small>Start the live camera feed and allow face detection to begin.</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-eye"></i>
+                    <div>
+                        <strong>Step 2: Track Your Blink Rate</strong><br>
+                        <small>AI monitors eye openness, blink frequency, and eye movement in real time.</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-bell"></i>
+                    <div>
+                        <strong>Step 3: Receive Smart Alerts</strong><br>
+                        <small>Get instant warnings when dry eye risk increases or you blink too little.</small>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 1rem; color: #555;">This system combines computer vision and blink analysis to help you stay aware of eye strain and maintain healthy screen habits.</p>
+        </section>
+
+        <div class="card animate-on-scroll animate-slide-up animate-delay-1" style="grid-column: span 2;">
+            <h2><i class="fas fa-clock"></i> Screen Time Check</h2>
+            <p>Enter your screen time in minutes to get an instant recommendation.</p>
+            <form method="post" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                {% csrf_token %}
+                <input type="number" name="time" min="0" placeholder="Minutes" style="padding:12px 16px; border-radius:12px; border:1px solid #ccc; width:120px;" />
+                <button type="submit"><i class="fas fa-calculator"></i> Check</button>
+                {% if message %}
+                    <div class="instruction-box" style="width:100%; margin-top:10px;">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="main-grid">
+            <!-- Camera Section -->
+            <div class="card camera-card animate-on-scroll animate-slide-left animate-delay-2">
+                <h2><i class="fas fa-video"></i> AI Camera Monitoring</h2>
+
+                <div class="video-container">
+                    <video id="video" width="640" height="480" autoplay></video>
+                    <div id="overlay">Initializing camera...</div>
+                </div>
+
+                <div class="face-indicator">
+                    <div class="indicator-light" id="faceLight"></div>
+                    <span id="faceStatus">Waiting for face...</span>
+                    <span style="margin-left:auto;" id="blinkStatus"></span>
+                </div>
+
+                <div class="button-group">
+                    <button onclick="startDetection()"><i class="fas fa-play"></i> Start Detection</button>
+                    <button class="stop" onclick="stopDetection()"><i class="fas fa-stop"></i> Stop Camera</button>
+                    <button onclick="requestNotificationPermission()"><i class="fas fa-bell"></i> Allow Alerts</button>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="card animate-on-scroll animate-slide-right animate-delay-3">
+                <h2><i class="fas fa-chart-bar"></i> Live Statistics</h2>
+
+                <div class="timer" id="timer">00:00</div>
+
+                <div class="stats-grid animate-stagger">
+                    <div class="stat-item">
+                        <div class="stat-label">Blinks</div>
+                        <div class="stat-value" id="blinkCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Blink Rate</div>
+                        <div class="stat-value" id="blinkRate">0/min</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Health Score</div>
+                        <div class="stat-value" id="healthScore">100%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Time without blink</div>
+                        <div class="stat-value" id="timeWithoutBlink">0s</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Total Alerts</div>
+                        <div class="stat-value" id="alertCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Face Detected</div>
+                        <div class="stat-value" id="faceDetected">No</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions & Alerts Section -->
+            <div class="card animate-on-scroll animate-slide-up animate-delay-4">
+                <h2><i class="fas fa-comments"></i> Live Instructions</h2>
+
+                <div class="status-box" id="statusBox">
+                    <i class="fas fa-pause"></i> System Ready
+                </div>
+
+                <div class="instruction-box" id="instructionBox">
+                    <i class="fas fa-hand-point-up"></i> Click "Start Detection" to begin
+                </div>
+
+                <h3><i class="fas fa-history"></i> Recent Alerts:</h3>
+                <div class="history-log" id="alertHistory">
+                    <div class="log-entry"><i class="fas fa-info-circle"></i> System ready...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Tips Card -->
+        <div class="card animate-on-scroll animate-scale animate-delay-5" id="features">
+            <h2><i class="fas fa-star"></i> What the AI is watching:</h2>
+            <div class="features-grid animate-stagger">
+                <div class="feature-item">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <strong>Face detection</strong><br>
+                        <small>Are you in front?</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-eye"></i>
+                    <div>
+                        <strong>Eye tracking</strong><br>
+                        <small>Are eyes open/closed?</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <strong>Blink counting</strong><br>
+                        <small>How often you blink</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Dry eye risk</strong><br>
+                        <small>No blinking too long</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <strong>20-20-20 rule</strong><br>
+                        <small>Break reminders</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-bell"></i>
+                    <div>
+                        <strong>Smart alerts</strong><br>
+                        <small>Desktop notifications</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer" id="footer">
+        <div class="container">
+            <div class="footer-section animate-on-scroll animate-slide-up">
+                <h3><i class="fas fa-eye"></i> EyeCare AI</h3>
+                <p>Advanced AI-powered eye health monitoring to prevent dry eyes and maintain optimal vision health through real-time analysis and personalized recommendations.</p>
+            </div>
+            <div class="footer-section animate-on-scroll animate-slide-up animate-delay-1">
+                <h3>Quick Links</h3>
+                <div class="footer-links">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#footer">Contact</a>
+                    <a href="mailto:dfrancisjob@gmail.com">Support</a>
+                </div>
+            </div>
+            <div class="footer-section animate-on-scroll animate-slide-up animate-delay-2">
+                <h3>Contact</h3>
+                <p><i class="fas fa-envelope"></i> dfrancisjob@gmail.com</p>
+                <p><i class="fas fa-phone"></i> +917907698580</p>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2024 EyeCare AI. All rights reserved. | Powered by Computer Vision & Machine Learning</p>
+        </div>
+    </footer>
+
+    <!-- Load MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    
+    <!-- Scroll Animation Script -->
+    <script>
+        // Intersection Observer for scroll animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate');
+                    }
+                });
+            }, observerOptions);
+
+            // Observe all elements with animate-on-scroll class
+            const animateElements = document.querySelectorAll('.animate-on-scroll, .animate-stagger');
+            animateElements.forEach(element => {
+                observer.observe(element);
+            });
+        });
+    </script>
+    
+
+    <!-- Load MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    
+    <script>
+        // DOM Elements
+        const video = document.getElementById('video');
+        const overlay = document.getElementById('overlay');
+        const faceLight = document.getElementById('faceLight');
+        const faceStatus = document.getElementById('faceStatus');
+        const blinkStatus = document.getElementById('blinkStatus');
+        const timerEl = document.getElementById('timer');
+        const blinkCountEl = document.getElementById('blinkCount');
+        const blinkRateEl = document.getElementById('blinkRate');
+        const healthScoreEl = document.getElementById('healthScore');
+        const timeWithoutBlinkEl = document.getElementById('timeWithoutBlink');
+        const alertCountEl = document.getElementById('alertCount');
+        const faceDetectedEl = document.getElementById('faceDetected');
+        const statusBox = document.getElementById('statusBox');
+        const instructionBox = document.getElementById('instructionBox');
+        const alertHistory = document.getElementById('alertHistory');
+        
+        // State variables
+        let seconds = 0;
+        let blinkCount = 0;
+        let alertCount = 0;
+        let lastBlinkTime = Date.now();
+        let notificationEnabled = false;
+        let camera = null;
+        let stream = null;
+        let timerInterval = null;
+        let faceDetected = false;
+        let cameraStarted = false;
+        let blinkClosed = false;
+        let lastInstruction = '';
+        
+        // Eye landmarks for blink detection
+        const LEFT_EYE_TOP = 159;
+        const LEFT_EYE_BOTTOM = 145;
+        const RIGHT_EYE_TOP = 386;
+        const RIGHT_EYE_BOTTOM = 374;
+        const BLINK_THRESHOLD = 0.018;
+        
+        // Format time
+        function formatTime(seconds) {
+            let mins = Math.floor(seconds / 60);
+            let secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Request notification permission
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("Browser doesn't support notifications");
+                return;
+            }
+            
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    notificationEnabled = true;
+                    addToHistory("✅ Notifications enabled");
+                    sendNotification("✅ Notifications Active", "You'll receive eye care alerts");
+                }
+            });
+        }
+        
+        // Send notification
+        function sendNotification(title, body) {
+            if (notificationEnabled && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: "https://cdn-icons-png.flaticon.com/512/2966/2966327.png",
+                    requireInteraction: true
+                });
+            }
+        }
+        
+        // Add to alert history
+        function addToHistory(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            alertHistory.insertBefore(entry, alertHistory.firstChild);
+            
+            // Keep only last 10 entries
+            if (alertHistory.children.length > 10) {
+                alertHistory.removeChild(alertHistory.lastChild);
+            }
+        }
+        
+        // Update instruction
+        function setInstruction(message, type = 'info') {
+            instructionBox.textContent = message;
+            instructionBox.style.animation = 'none';
+            instructionBox.offsetHeight;
+            instructionBox.style.animation = 'slideIn 0.5s';
+            
+            if (message !== lastInstruction) {
+                addToHistory(`📢 ${message}`);
+                lastInstruction = message;
+            }
+        }
+        
+        // Start detection
+        function startDetection() {
+            startCamera();
+        }
+        
+        // Start camera
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    width: 640,
+                    height: 480,
+                    frameRate: 30
+                } 
+            })
+            .then(function(mediaStream) {
+                stream = mediaStream;
+                video.srcObject = mediaStream;
+                overlay.textContent = 'Camera active - loading AI...';
+                cameraStarted = true;
+                initializeFaceDetection();
+                startTimer();
+            })
+            .catch(function(error) {
+                alert('Camera access denied. Please allow camera permissions.');
+                console.error(error);
+            });
+        }
+        
+        // Stop detection
+        function stopDetection() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (camera) {
+                camera.stop();
+            }
+            
+            overlay.textContent = 'Camera stopped';
+            faceLight.className = 'indicator-light';
+            faceStatus.textContent = 'Camera stopped';
+            faceDetectedEl.textContent = 'No';
+            setInstruction('Detection stopped. Click Start to resume.');
+            statusBox.className = 'status-box';
+            statusBox.textContent = '⏸️ System Stopped';
+        }
+        
+        // Start timer
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            seconds = 0;
+            blinkCount = 0;
+            alertCount = 0;
+            lastBlinkTime = Date.now();
+            
+            timerInterval = setInterval(() => {
+                seconds++;
+                timerEl.textContent = formatTime(seconds);
+                
+                // Calculate blink rate (blinks per minute)
+                let blinkRate = (blinkCount / (seconds / 60)) || 0;
+                blinkRateEl.textContent = Math.round(blinkRate) + '/min';
+                
+                // Calculate time without blink
+                let timeWithoutBlink = Math.round((Date.now() - lastBlinkTime) / 1000);
+                timeWithoutBlinkEl.textContent = timeWithoutBlink + 's';
+                
+                // Calculate health score
+                let healthScore = 100;
+                if (blinkRate < 10) healthScore -= 30;
+                if (blinkRate > 25) healthScore -= 20;
+                if (timeWithoutBlink > 10) healthScore -= 40;
+                healthScore = Math.max(0, Math.min(100, healthScore));
+                healthScoreEl.textContent = healthScore + '%';
+                
+                // Check for alerts
+                checkAlerts(timeWithoutBlink, blinkRate, healthScore);
+                
+            }, 1000);
+        }
+        
+        // Check for alerts
+        function checkAlerts(timeWithoutBlink, blinkRate, healthScore) {
+            
+            // Waiting for camera feed
+            if (!cameraStarted) {
+                statusBox.className = 'status-box status-active';
+                statusBox.textContent = '⏳ Starting camera...';
+                setInstruction('Please allow camera access and wait for the video feed.');
+                return;
+            }
+
+            // No face detected
+            if (!faceDetected) {
+                statusBox.className = 'status-box status-warning';
+                statusBox.textContent = '⚠️ No face detected';
+                setInstruction('Please sit in front of the camera');
+                return;
+            }
+            
+            // Dry eye risk - no blinking
+            if (timeWithoutBlink > 10) {
+                statusBox.className = 'status-box status-warning';
+                statusBox.textContent = '⚠️ DRY EYE RISK!';
+                setInstruction('🔴 You haven\'t blinked for ' + timeWithoutBlink + ' seconds! Blink now!');
+                
+                if (timeWithoutBlink === 11) {
+                    alertCount++;
+                    alertCountEl.textContent = alertCount;
+                    sendNotification('⚠️ Dry Eye Risk!', 'You haven\'t blinked for 10 seconds. Please blink!');
+                    addToHistory('⚠️ Dry eye alert triggered');
+                }
+                return;
+            }
+            
+            // Low blink rate
+            if (blinkRate < 8 && seconds > 30) {
+                statusBox.className = 'status-box status-warning';
+                statusBox.textContent = '⚠️ Low blink rate';
+                setInstruction('👁️ You\'re not blinking enough! ' + Math.round(blinkRate) + ' blinks/min (normal: 15-20)');
+                
+                if (blinkRate < 5 && Math.random() < 0.1) {
+                    sendNotification('⚠️ Low Blink Rate', 'Blink more to prevent dry eyes!');
+                }
+                return;
+            }
+            
+            // 20-20-20 rule (every 20 minutes)
+            if (seconds > 0 && seconds % 1200 === 0) {
+                statusBox.className = 'status-box status-warning';
+                statusBox.textContent = '⏰ 20-20-20 Rule!';
+                setInstruction('🔴 Look at something 20 feet away for 20 seconds!');
+                sendNotification('⏰ 20-20-20 Rule', 'Time for a break! Look away for 20 seconds.');
+                addToHistory('⏰ 20 minute break reminder');
+                return;
+            }
+            
+            // Normal status
+            statusBox.className = 'status-box status-active';
+            statusBox.textContent = '✅ Monitoring - All good';
+            
+            // Random eye care tips
+            if (seconds % 60 === 0) {
+                const tips = [
+                    '👁️ Blink slowly 5 times',
+                    '💧 Roll your eyes gently',
+                    '🌟 Look away from screen',
+                    '🧘 Close eyes for 10 seconds',
+                    '💫 Massage your temples'
+                ];
+                let tip = tips[Math.floor(Math.random() * tips.length)];
+                setInstruction(tip);
+            }
+        }
+        
+        // Initialize face detection
+        function initializeFaceDetection() {
+            const faceMesh = new FaceMesh({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                }
+            });
+            
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            faceMesh.onResults(onFaceResults);
+            
+            camera = new Camera(video, {
+                onFrame: async () => {
+                    await faceMesh.send({image: video});
+                },
+                width: 640,
+                height: 480
+            });
+            
+            camera.start();
+            overlay.textContent = 'AI active - watching eyes...';
+        }
+        
+        // Process face detection results
+        function onFaceResults(results) {
+            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                // No face detected
+                faceLight.className = 'indicator-light';
+                faceStatus.textContent = 'No face detected';
+                blinkStatus.textContent = '';
+                faceDetected = false;
+                faceDetectedEl.textContent = 'No';
+                return;
+            }
+            
+            // Face detected
+            faceLight.className = 'indicator-light active';
+            faceStatus.textContent = 'Face detected';
+            faceDetected = true;
+            faceDetectedEl.textContent = 'Yes';
+            
+            const landmarks = results.multiFaceLandmarks[0];
+            
+            // Detect blink by measuring eye openness
+            let leftEyeOpen = Math.abs(landmarks[LEFT_EYE_TOP].y - landmarks[LEFT_EYE_BOTTOM].y);
+            let rightEyeOpen = Math.abs(landmarks[RIGHT_EYE_TOP].y - landmarks[RIGHT_EYE_BOTTOM].y);
+            let isBlinkClosed = leftEyeOpen < BLINK_THRESHOLD && rightEyeOpen < BLINK_THRESHOLD;
+
+            if (isBlinkClosed && !blinkClosed) {
+                blinkClosed = true;
+                blinkCount++;
+                lastBlinkTime = Date.now();
+                blinkCountEl.textContent = blinkCount;
+
+                faceLight.className = 'indicator-light blink';
+                blinkStatus.textContent = '👁️ Blink detected!';
+
+                setTimeout(() => {
+                    if (faceDetected) {
+                        faceLight.className = 'indicator-light active';
+                        blinkStatus.textContent = '';
+                    }
+                }, 200);
+            } else if (!isBlinkClosed) {
+                blinkClosed = false;
+            }
+
+            // Check if eyes are closed too long (immediate feedback)
+            if (isBlinkClosed) {
+                let timeSinceBlink = (Date.now() - lastBlinkTime) / 1000;
+                if (timeSinceBlink > 3) {
+                    setInstruction('👀 Eyes closed too long - wake up!');
+                }
+            }
+        }
+        
+        // Reset function
+        function resetAll() {
+            seconds = 0;
+            blinkCount = 0;
+            alertCount = 0;
+            lastBlinkTime = Date.now();
+            
+            timerEl.textContent = '00:00';
+            blinkCountEl.textContent = '0';
+            alertCountEl.textContent = '0';
+            healthScoreEl.textContent = '100%';
+            timeWithoutBlinkEl.textContent = '0s';
+            
+            setInstruction('Reset complete. Start monitoring.');
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
