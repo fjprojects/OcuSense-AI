@@ -19,20 +19,18 @@
 
         html {
             height: 100%;
-            overflow: hidden;
+            overflow-y: auto;
         }
 
         body {
             font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
             background: radial-gradient(circle at top, #04090f 0%, #08151f 32%, #06111c 100%);
             min-height: 100vh;
-            height: 100%;
             margin: 0;
             padding: 0;
             color: #e6f8ff;
             line-height: 1.6;
             position: relative;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
         }
@@ -599,7 +597,7 @@
         }
 
         .hero h1 {
-            font-size: 3rem;
+            font-size: 2.4rem;
             font-weight: 700;
             color: white;
             margin-bottom: 1rem;
@@ -1151,6 +1149,30 @@
         .animate-stagger.animate > * {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        /* Custom Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #06111f;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1b3b52;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2d5b78;
+        }
+
+        /* Firefox scrollbar */
+        * {
+            scrollbar-color: #1b3b52 #06111f;
+            scrollbar-width: thin;
         }
     </style>
 </head>
