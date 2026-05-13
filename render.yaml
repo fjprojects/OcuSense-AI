@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: dryeyeapp
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn dryeye_project.wsgi:application"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: dryeye_project.settings

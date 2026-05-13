@@ -1,11 +1,15 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f5132">
     <title>Ocusense AI Eye Health with Notifications</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="icon" href="{% static 'icon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,16 +17,24 @@
             box-sizing: border-box;
         }
 
+        html {
+            height: 100%;
+            overflow: hidden;
+        }
+
         body {
             font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #0f5132 0%, #ffffff 100%);
+            background: radial-gradient(circle at top, #04090f 0%, #08151f 32%, #06111c 100%);
             min-height: 100vh;
+            height: 100%;
             margin: 0;
             padding: 0;
-            color: #333;
+            color: #e6f8ff;
             line-height: 1.6;
             position: relative;
-            overflow-x: hidden;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Background Animation Layers */
@@ -252,14 +264,13 @@
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(2, 10, 19, 0.92);
+            backdrop-filter: blur(14px);
             padding: 1rem 0;
             position: sticky;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
         }
 
         .header .container {
@@ -274,7 +285,7 @@
         .logo {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #0f5132;
+            color: #e6f8ff;
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -282,30 +293,303 @@
         }
 
         .logo i {
-            color: #198754;
-        }
-
-        .nav {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav a {
-            text-decoration: none;
-            color: #666;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav a:hover {
-            color: #0f5132;
+            color: #5df7b6;
         }
 
         .main-content {
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem 20px;
-            scroll-margin-top: 110px;
+            padding: 0 20px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .hub-screen,
+        .module-screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+            width: 100%;
+            overflow-y: auto;
+            padding: 1.5rem 0;
+        }
+
+        .hub-screen.active,
+        .module-screen.active {
+            display: flex;
+        }
+
+        .app-shell {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .hub-card {
+            width: min(860px, 100%);
+            margin: 0 auto;
+            background: rgba(15, 24, 38, 0.75);
+            border: 1px solid rgba(93, 247, 182, 0.14);
+            border-radius: 2rem;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(20px);
+        }
+
+        .hub-icon {
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 1.5rem;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(circle at 30% 30%, rgba(93, 247, 182, 0.28), transparent 58%);
+            border: 1px solid rgba(93, 247, 182, 0.2);
+            color: #8dffda;
+            font-size: 3rem;
+            box-shadow: 0 0 35px rgba(93, 247, 182, 0.18);
+        }
+
+        .hub-title {
+            font-size: clamp(2.6rem, 5vw, 4rem);
+            letter-spacing: 0.16em;
+            color: #f9fffd;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 25px rgba(93, 247, 182, 0.35);
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+
+        .hub-tagline {
+            color: rgba(230, 248, 255, 0.82);
+            font-size: 1.05rem;
+            line-height: 1.8;
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        .launcher-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            align-items: stretch;
+        }
+
+        .game-card {
+            background: rgba(10, 14, 24, 0.95);
+            border: 1px solid rgba(93, 247, 182, 0.14);
+            border-radius: 1.8rem;
+            padding: 2rem;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            color: #f8fcff;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 30px 70px rgba(22, 255, 190, 0.15);
+            border-color: rgba(93, 247, 182, 0.3);
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -20%;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(93, 247, 182, 0.24), transparent 60%);
+            filter: blur(16px);
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.06);
+            color: #7ef2cd;
+            font-size: 1.4rem;
+            margin-bottom: 1.3rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.6rem;
+            line-height: 1.25;
+        }
+
+        .card-desc {
+            color: rgba(255, 255, 255, 0.76);
+            line-height: 1.8;
+            font-size: 0.98rem;
+            flex: 1;
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 1.6rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 1.6rem 1.8rem;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+            margin-bottom: 1.5rem;
+        }
+
+        .module-title {
+            font-size: clamp(1.9rem, 3vw, 2.6rem);
+            color: #f8ffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .module-subtitle {
+            color: rgba(230, 248, 255, 0.72);
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 700px;
+        }
+
+        .module-body {
+            overflow-y: auto;
+            padding-right: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .module-card {
+            background: rgba(10, 16, 28, 0.95);
+            border: 1px solid rgba(93, 247, 182, 0.12);
+            border-radius: 1.8rem;
+            padding: 2rem;
+            box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+        }
+
+        .button.back-button {
+            min-width: 130px;
+        }
+
+        .back-button.hidden {
+            display: none;
+        }
+
+        .mode-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(93, 247, 182, 0.12);
+            color: #9dffda;
+            padding: 0.45rem 0.95rem;
+            border-radius: 999px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .hub-title,
+        .module-title {
+            letter-spacing: 0.08em;
+        }
+
+        .module-note {
+            color: rgba(230, 248, 255, 0.72);
+            text-align: center;
+            margin-top: 0.75rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1rem;
+            margin: 1.25rem 0;
+        }
+
+        .form-grid input,
+        .form-grid select {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            color: #f8ffff;
+        }
+
+        .form-grid input::placeholder,
+        .form-grid select {
+            color: rgba(255, 255, 255, 0.68);
+        }
+
+        .form-switch {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0 0.5rem;
+            color: #f8ffff;
+            font-size: 0.95rem;
+        }
+
+        .form-switch input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .distance-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(93, 247, 182, 0.12);
+            border-radius: 1.4rem;
+            padding: 1.4rem 1.6rem;
+            margin: 1.2rem 0;
+        }
+
+        .distance-label {
+            color: rgba(230, 248, 255, 0.78);
+            font-size: 1rem;
+        }
+
+        .distance-value {
+            font-size: 2.15rem;
+            color: #7ef2cd;
+            font-weight: 700;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 25px rgba(93, 247, 182, 0.35); }
+            50% { text-shadow: 0 0 35px rgba(93, 247, 182, 0.6); }
+        }
+
+        body {
+            scroll-behavior: smooth;
         }
 
         .hero {
@@ -342,6 +626,57 @@
             margin-bottom: 2rem;
         }
 
+        .button.secondary,
+        button.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e6f8ff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: none;
+        }
+
+        .button.secondary:hover,
+        button.secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(93, 247, 182, 0.18);
+        }
+
+        .button,
+        button {
+            background: linear-gradient(135deg, #4ad7a8, #1bc4ce);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 25px rgba(26, 201, 237, 0.25);
+            flex: 1;
+            min-width: 150px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(26, 201, 237, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-top: 1.5rem;
+        }
+
         @media (min-width: 768px) {
             .main-grid {
                 grid-template-columns: 1fr 1fr;
@@ -349,25 +684,26 @@
         }
 
         .card {
-            background: white;
+            background: rgba(8, 14, 24, 0.95);
             border-radius: 20px;
             padding: 2rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            box-shadow: 0 30px 90px rgba(0,0,0,0.35);
             margin-bottom: 2rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(93, 247, 182, 0.14);
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 40px 110px rgba(0,0,0,0.45);
+            border-color: rgba(93, 247, 182, 0.3);
         }
 
         .card h2 {
-            color: #0f5132;
+            color: #efffff;
             margin-bottom: 1.5rem;
-            font-size: 1.5rem;
-            font-weight: 600;
+            font-size: 1.6rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -428,27 +764,27 @@
         }
 
         .status-active {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            color: #155724;
-            border-color: #c3e6cb;
+            background: rgba(37, 197, 153, 0.14);
+            color: #b8ffe3;
+            border-color: rgba(37, 197, 153, 0.24);
         }
 
         .status-warning {
-            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-            color: #721c24;
-            border-color: #f5c6cb;
+            background: rgba(245, 101, 119, 0.14);
+            color: #ffd6dc;
+            border-color: rgba(245, 101, 119, 0.24);
             animation: pulse 1s infinite;
         }
 
         .status-blink {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            color: #856404;
-            border-color: #ffeaa7;
+            background: rgba(255, 221, 89, 0.14);
+            color: #fff9c8;
+            border-color: rgba(255, 221, 89, 0.22);
         }
 
         @keyframes pulse {
             0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.9; transform: scale(1.02); }
+            50% { opacity: 0.92; transform: scale(1.01); }
             100% { opacity: 1; transform: scale(1); }
         }
 
@@ -495,8 +831,8 @@
         }
 
         .instruction-box {
-            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-            border-left: 5px solid #2196F3;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 5px solid rgba(93, 247, 182, 0.65);
             padding: 1.5rem;
             margin: 1.5rem 0;
             border-radius: 15px;
@@ -504,7 +840,8 @@
             font-weight: 600;
             text-align: center;
             animation: slideIn 0.5s;
-            border: 1px solid rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(93, 247, 182, 0.15);
+            color: #e9f9ff;
         }
 
         @keyframes slideIn {
@@ -834,219 +1171,238 @@
     </div>
 
     <header class="header">
-        <div class="container">
-            <a href="/" class="logo">
+        <div class="container header-inner">
+            <a href="javascript:void(0)" class="logo">
                 <i class="fas fa-eye"></i>
                 EyeCare AI
             </a>
-            <nav class="nav">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="#footer">Contact</a>
-            </nav>
+            <button class="button secondary back-button hidden" id="backButton" onclick="backToHub()">
+                <i class="fas fa-arrow-left"></i> Hub
+            </button>
         </div>
     </header>
 
     <main class="main-content" id="main-content">
-        <section class="hero animate-on-scroll animate-fade-in">
-            <h1><i class="fas fa-eye"></i> Ocusense AI Eye Health Monitoring</h1>
-            <p>Advanced computer vision technology to monitor your eye health and prevent dry eyes. Get real-time alerts and personalized recommendations for better eye care.</p>
-        </section>
-
-        <section class="card animate-on-scroll animate-scale animate-delay-1" id="how-it-works" style="margin-bottom: 2rem;">
-            <h2><i class="fas fa-cogs"></i> How It Works</h2>
-            <div class="features-grid animate-stagger" style="grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 1rem;">
-                <div class="feature-item">
-                    <i class="fas fa-video"></i>
-                    <div>
-                        <strong>Step 1: Activate Camera</strong><br>
-                        <small>Start the live camera feed and allow face detection to begin.</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-eye"></i>
-                    <div>
-                        <strong>Step 2: Track Your Blink Rate</strong><br>
-                        <small>AI monitors eye openness, blink frequency, and eye movement in real time.</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-bell"></i>
-                    <div>
-                        <strong>Step 3: Receive Smart Alerts</strong><br>
-                        <small>Get instant warnings when dry eye risk increases or you blink too little.</small>
-                    </div>
-                </div>
-            </div>
-            <p style="margin-top: 1rem; color: #555;">This system combines computer vision and blink analysis to help you stay aware of eye strain and maintain healthy screen habits.</p>
-        </section>
-
-        <div class="card animate-on-scroll animate-slide-up animate-delay-1" style="grid-column: span 2;">
-            <h2><i class="fas fa-clock"></i> Screen Time Check</h2>
-            <p>Enter your screen time in minutes to get an instant recommendation.</p>
-            <form method="post" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                {% csrf_token %}
-                <input type="number" name="time" min="0" placeholder="Minutes" style="padding:12px 16px; border-radius:12px; border:1px solid #ccc; width:120px;" />
-                <button type="submit"><i class="fas fa-calculator"></i> Check</button>
-                {% if message %}
-                    <div class="instruction-box" style="width:100%; margin-top:10px;">
-                        {{ message }}
-                    </div>
-                {% endif %}
-            </form>
-        </div>
-
-        <div class="main-grid">
-            <!-- Camera Section -->
-            <div class="card camera-card animate-on-scroll animate-slide-left animate-delay-2">
-                <h2><i class="fas fa-video"></i> AI Camera Monitoring</h2>
-
-                <div class="video-container">
-                    <video id="video" width="640" height="480" autoplay></video>
-                    <div id="overlay">Initializing camera...</div>
+        <div class="app-shell">
+            <div class="hub-screen active" id="hubScreen">
+                <div class="hub-card">
+                    <div class="hub-icon"><i class="fas fa-eye-drop"></i></div>
+                    <div class="hub-title">Ocusense Arena</div>
+                    <div class="hub-tagline">Launch eye wellness modes, monitor screen health, and stay on top of medicine reminders.</div>
                 </div>
 
-                <div class="face-indicator">
-                    <div class="indicator-light" id="faceLight"></div>
-                    <span id="faceStatus">Waiting for face...</span>
-                    <span style="margin-left:auto;" id="blinkStatus"></span>
-                </div>
-
-                <div class="button-group">
-                    <button onclick="startDetection()"><i class="fas fa-play"></i> Start Detection</button>
-                    <button class="stop" onclick="stopDetection()"><i class="fas fa-stop"></i> Stop Camera</button>
-                    <button onclick="requestNotificationPermission()"><i class="fas fa-bell"></i> Allow Alerts</button>
+                <div class="launcher-grid">
+                    <button class="game-card" onclick="openModule('screenTimeModule')">
+                        <div class="card-icon"><i class="fas fa-clock"></i></div>
+                        <div class="card-title">Screen Health Check</div>
+                        <div class="card-desc">Track screen time and monitor viewing distance together.</div>
+                    </button>
+                    <button class="game-card" onclick="openModule('cameraModule')">
+                        <div class="card-icon"><i class="fas fa-video"></i></div>
+                        <div class="card-title">Camera Monitoring</div>
+                        <div class="card-desc">Activate AI blink detection and face tracking in real time.</div>
+                    </button>
+                    <button class="game-card" onclick="openModule('wellnessModule')">
+                        <div class="card-icon"><i class="fas fa-heartbeat"></i></div>
+                        <div class="card-title">Wellness Tracker</div>
+                        <div class="card-desc">Stay hydrated and manage wellness reminders with one tap.</div>
+                    </button>
+                    <button class="game-card" onclick="openModule('medicineModule')">
+                        <div class="card-icon"><i class="fas fa-pills"></i></div>
+                        <div class="card-title">Medicine Reminder</div>
+                        <div class="card-desc">Schedule eye drops and medication alerts quickly.</div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Stats Section -->
-            <div class="card animate-on-scroll animate-slide-right animate-delay-3">
-                <h2><i class="fas fa-chart-bar"></i> Live Statistics</h2>
-
-                <div class="timer" id="timer">00:00</div>
-
-                <div class="stats-grid animate-stagger">
-                    <div class="stat-item">
-                        <div class="stat-label">Blinks</div>
-                        <div class="stat-value" id="blinkCount">0</div>
+            <div class="module-screen" id="screenTimeModule">
+                <div class="module-header">
+                    <div>
+                        <span class="mode-pill">Mode</span>
+                        <div class="module-title">Screen Health Check</div>
+                        <div class="module-subtitle">Track screen time and screen distance together in one place.</div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Blink Rate</div>
-                        <div class="stat-value" id="blinkRate">0/min</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Health Score</div>
-                        <div class="stat-value" id="healthScore">100%</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Time without blink</div>
-                        <div class="stat-value" id="timeWithoutBlink">0s</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Total Alerts</div>
-                        <div class="stat-value" id="alertCount">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Face Detected</div>
-                        <div class="stat-value" id="faceDetected">No</div>
+                    <button class="button secondary back-button" onclick="backToHub()"><i class="fas fa-arrow-left"></i> Hub</button>
+                </div>
+                <div class="module-body">
+                    <div class="card module-card">
+                        <h2><i class="fas fa-clock"></i> Screen Time & Distance</h2>
+                        <p>Monitor your current session length and screen viewing distance from the same dashboard.</p>
+                        <form method="post" style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-top:1.2rem;">
+                            {% csrf_token %}
+                            <input type="number" name="time" min="0" placeholder="Minutes" style="flex:1; min-width:140px; padding:14px 18px; border-radius:18px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.04); color:#fff;" />
+                            <button type="submit" class="button"><i class="fas fa-calculator"></i> Check</button>
+                        </form>
+                        <div class="status-box status-active" id="screenTimeStatus" style="margin-top:1.5rem;">Ready to track screen time.</div>
+                        <div class="timer" id="screenTimeTimer">00:00</div>
+                        <div class="button-group">
+                            <button onclick="startScreenTimer()"><i class="fas fa-play"></i> Start Timer</button>
+                            <button class="stop" onclick="pauseScreenTimer()"><i class="fas fa-pause"></i> Pause</button>
+                            <button class="reset" onclick="resetScreenTimer()"><i class="fas fa-undo"></i> Reset</button>
+                        </div>
+                        <div class="divider" style="margin:2rem 0; border-top:1px solid rgba(255,255,255,0.12);"></div>
+                        <h3 style="margin-bottom:0.8rem; color:#efffff;">Distance Helper</h3>
+                        <div class="status-box status-warning" id="cameraDistanceStatus">Distance status unknown</div>
+                        <div class="distance-card" style="margin-top:1rem;">
+                            <div class="distance-label">Current screen distance level</div>
+                            <div class="distance-value" id="cameraDistanceValue">--</div>
+                        </div>
+                        <div class="instruction-box" id="cameraDistanceMessage">Move your face into view and start the camera to measure screen safety.</div>
+                        <div class="button-group" style="margin-top:1rem;">
+                            <button onclick="startDetection()"><i class="fas fa-play"></i> Start Camera</button>
+                            <button class="secondary" onclick="requestNotificationPermission()"><i class="fas fa-bell"></i> Enable Alerts</button>
+                        </div>
+                        {% if message %}
+                            <div class="instruction-box" style="margin-top:1.2rem; color:#d1f7ff; border-color:rgba(81,241,255,0.3); background:rgba(14,42,55,0.9);">
+                                {{ message }}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Instructions & Alerts Section -->
-            <div class="card animate-on-scroll animate-slide-up animate-delay-4">
-                <h2><i class="fas fa-comments"></i> Live Instructions</h2>
-
-                <div class="status-box" id="statusBox">
-                    <i class="fas fa-pause"></i> System Ready
+            <div class="module-screen" id="cameraModule">
+                <div class="module-header">
+                    <div>
+                        <span class="mode-pill">Mode</span>
+                        <div class="module-title">Camera Monitoring</div>
+                        <div class="module-subtitle">Use AI vision to track blinks, face presence, and eye safety.</div>
+                    </div>
+                    <button class="button secondary back-button" onclick="backToHub()"><i class="fas fa-arrow-left"></i> Hub</button>
                 </div>
-
-                <div class="instruction-box" id="instructionBox">
-                    <i class="fas fa-hand-point-up"></i> Click "Start Detection" to begin
-                </div>
-
-                <h3><i class="fas fa-history"></i> Recent Alerts:</h3>
-                <div class="history-log" id="alertHistory">
-                    <div class="log-entry"><i class="fas fa-info-circle"></i> System ready...</div>
+                <div class="module-body">
+                    <div class="card module-card">
+                        <h2><i class="fas fa-video"></i> AI Live Monitor</h2>
+                        <div class="video-container">
+                            <video id="video" muted playsinline></video>
+                            <div id="overlay">Tap Start to launch the AI camera.</div>
+                        </div>
+                        <div class="face-indicator">
+                            <div class="indicator-light" id="faceLight"></div>
+                            <span id="faceStatus">Waiting for face...</span>
+                            <span id="blinkStatus"></span>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Face</div>
+                                <div class="stat-value" id="faceDetected">No</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Blink count</div>
+                                <div class="stat-value" id="blinkCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Blink rate</div>
+                                <div class="stat-value" id="blinkRate">0/min</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">No-blink time</div>
+                                <div class="stat-value" id="timeWithoutBlink">0s</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Distance level</div>
+                                <div class="stat-value" id="cameraDistancePct">--</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Alerts</div>
+                                <div class="stat-value" id="alertCount">0</div>
+                            </div>
+                        </div>
+                        <div class="status-box status-active" id="statusBox">Ready to monitor your screen health.</div>
+                        <div class="instruction-box" id="instructionBox">Use the live camera monitor to track blinks, distance, and screen alerts in real time.</div>
+                        <div class="history-log" id="alertHistory" style="margin-top:1.5rem;">
+                            <div class="log-entry">Live alert history will appear here.</div>
+                        </div>
+                        <div class="button-group">
+                            <button onclick="startDetection()"><i class="fas fa-play"></i> Start Detection</button>
+                            <button class="stop" onclick="stopDetection()"><i class="fas fa-stop"></i> Stop</button>
+                            <button class="secondary" onclick="requestNotificationPermission()"><i class="fas fa-bell"></i> Enable Alerts</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Quick Tips Card -->
-        <div class="card animate-on-scroll animate-scale animate-delay-5" id="features">
-            <h2><i class="fas fa-star"></i> What the AI is watching:</h2>
-            <div class="features-grid animate-stagger">
-                <div class="feature-item">
-                    <i class="fas fa-user"></i>
+            <div class="module-screen" id="wellnessModule">
+                <div class="module-header">
                     <div>
-                        <strong>Face detection</strong><br>
-                        <small>Are you in front?</small>
+                        <span class="mode-pill">Mode</span>
+                        <div class="module-title">Wellness Tracker</div>
+                        <div class="module-subtitle">Keep hydration and recovery goals on track while you work.</div>
+                    </div>
+                    <button class="button secondary back-button" onclick="backToHub()"><i class="fas fa-arrow-left"></i> Hub</button>
+                </div>
+                <div class="module-body">
+                    <div class="card module-card">
+                        <h2><i class="fas fa-water"></i> Hydration Reminder</h2>
+                        <p>Start the wellness tracker and receive water reminders every 45 minutes.</p>
+                        <div class="status-box status-active" id="hydrationStatus">Hydration reminder ready</div>
+                        <div class="timer" id="hydrationTimer">45:00</div>
+                        <p class="module-note" id="nextHydration">Next reminder in 45 minutes</p>
+                        <div class="button-group">
+                            <button onclick="startHydrationReminder()"><i class="fas fa-play"></i> Start</button>
+                            <button class="stop" onclick="pauseHydrationReminder()"><i class="fas fa-pause"></i> Pause</button>
+                            <button class="reset" onclick="resetHydrationReminder()"><i class="fas fa-undo"></i> Reset</button>
+                        </div>
                     </div>
                 </div>
-                <div class="feature-item">
-                    <i class="fas fa-eye"></i>
+            </div>
+
+            <div class="module-screen" id="medicineModule">
+                <div class="module-header">
                     <div>
-                        <strong>Eye tracking</strong><br>
-                        <small>Are eyes open/closed?</small>
+                        <span class="mode-pill">Mode</span>
+                        <div class="module-title">Medicine & Distance Tracker</div>
+                        <div class="module-subtitle">Schedule eye drops and monitor screen distance for optimal eye care.</div>
+                    </div>
+                    <button class="button secondary back-button" onclick="backToHub()"><i class="fas fa-arrow-left"></i> Hub</button>
+                </div>
+                <div class="module-body">
+                    <div class="card module-card">
+                        <h2><i class="fas fa-pills"></i> Medicine Reminder</h2>
+                        <p>Set a medicine name, dosage, and alarm time for a one-time or daily reminder.</p>
+                        <div class="form-grid">
+                            <input id="medicineName" type="text" placeholder="Medicine name" />
+                            <input id="medicineDosage" type="text" placeholder="Dosage (optional)" />
+                            <input id="medicineHour" type="number" min="1" max="12" placeholder="Hour" />
+                            <input id="medicineMinute" type="number" min="0" max="59" placeholder="Minute" />
+                            <select id="medicineAmpm">
+                                <option>AM</option>
+                                <option>PM</option>
+                            </select>
+                            <label class="form-switch">
+                                <input id="medicineRepeat" type="checkbox" checked />
+                                <span>Repeat daily</span>
+                            </label>
+                        </div>
+                        <button class="button" onclick="addMedicineTask()"><i class="fas fa-plus"></i> Add Reminder</button>
+                        <div id="medicineTaskList" class="medicine-list"></div>
+                    </div>
+                    <div class="card module-card">
+                        <h2><i class="fas fa-pills"></i> Medicine Reminder</h2>
+                        <p>Set a medicine name, dosage, and alarm time for a one-time or daily reminder.</p>
+                        <div class="form-grid">
+                            <input id="medicineName" type="text" placeholder="Medicine name" />
+                            <input id="medicineDosage" type="text" placeholder="Dosage (optional)" />
+                            <input id="medicineHour" type="number" min="1" max="12" placeholder="Hour" />
+                            <input id="medicineMinute" type="number" min="0" max="59" placeholder="Minute" />
+                            <select id="medicineAmpm">
+                                <option>AM</option>
+                                <option>PM</option>
+                            </select>
+                            <label class="form-switch">
+                                <input id="medicineRepeat" type="checkbox" checked />
+                                <span>Repeat daily</span>
+                            </label>
+                        </div>
+                        <button class="button" onclick="addMedicineTask()"><i class="fas fa-plus"></i> Add Reminder</button>
+                        <div id="medicineTaskList" class="medicine-list"></div>
                     </div>
                 </div>
-                <div class="feature-item">
-                    <i class="fas fa-bolt"></i>
-                    <div>
-                        <strong>Blink counting</strong><br>
-                        <small>How often you blink</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div>
-                        <strong>Dry eye risk</strong><br>
-                        <small>No blinking too long</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-clock"></i>
-                    <div>
-                        <strong>20-20-20 rule</strong><br>
-                        <small>Break reminders</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-bell"></i>
-                    <div>
-                        <strong>Smart alerts</strong><br>
-                        <small>Desktop notifications</small>
-                    </div>
-                </div>
+            </div>
+
             </div>
         </div>
     </main>
-
-    <footer class="footer" id="footer">
-        <div class="container">
-            <div class="footer-section animate-on-scroll animate-slide-up">
-                <h3><i class="fas fa-eye"></i> EyeCare AI</h3>
-                <p>Advanced AI-powered eye health monitoring to prevent dry eyes and maintain optimal vision health through real-time analysis and personalized recommendations.</p>
-            </div>
-            <div class="footer-section animate-on-scroll animate-slide-up animate-delay-1">
-                <h3>Quick Links</h3>
-                <div class="footer-links">
-                    <a href="#features">Features</a>
-                    <a href="#how-it-works">How It Works</a>
-                    <a href="#footer">Contact</a>
-                    <a href="mailto:dfrancisjob@gmail.com">Support</a>
-                </div>
-            </div>
-            <div class="footer-section animate-on-scroll animate-slide-up animate-delay-2">
-                <h3>Contact</h3>
-                <p><i class="fas fa-envelope"></i> dfrancisjob@gmail.com</p>
-                <p><i class="fas fa-phone"></i> +917907698580</p>
-            </div>
-        </div>
-        <div class="copyright">
-            <p>&copy; 2024 EyeCare AI. All rights reserved. | Powered by Computer Vision & Machine Learning</p>
-        </div>
-    </footer>
 
     <!-- Load MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
@@ -1056,24 +1412,11 @@
     <script>
         // Intersection Observer for scroll animations
         document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('animate');
-                    }
-                });
-            }, observerOptions);
-
-            // Observe all elements with animate-on-scroll class
-            const animateElements = document.querySelectorAll('.animate-on-scroll, .animate-stagger');
-            animateElements.forEach(element => {
-                observer.observe(element);
-            });
+            showHub();
+            updateHydrationUI();
+            initializeMedicineUI();
+            updateDistanceStatus(null);
+            updateScreenTimeUI();
         });
     </script>
     
@@ -1099,13 +1442,27 @@
         const statusBox = document.getElementById('statusBox');
         const instructionBox = document.getElementById('instructionBox');
         const alertHistory = document.getElementById('alertHistory');
+        const hydrationStatusEl = document.getElementById('hydrationStatus');
+        const hydrationTimerEl = document.getElementById('hydrationTimer');
+        const nextHydrationEl = document.getElementById('nextHydration');
+        const medicineTaskListEl = document.getElementById('medicineTaskList');
+        const screenTimeTimerEl = document.getElementById('screenTimeTimer');
+        const screenTimeStatusEl = document.getElementById('screenTimeStatus');
+        const screenTimeMessageEl = document.getElementById('screenTimeMessage');
+        const cameraDistanceStatusEl = document.getElementById('cameraDistanceStatus');
+        const cameraDistanceValueEl = document.getElementById('cameraDistanceValue');
+        const cameraDistancePctEl = document.getElementById('cameraDistancePct');
+        const cameraDistanceMessageEl = document.getElementById('cameraDistanceMessage');
         
         // State variables
         let seconds = 0;
         let blinkCount = 0;
         let alertCount = 0;
         let lastBlinkTime = Date.now();
-        let notificationEnabled = false;
+        let screenTimeSeconds = 0;
+        let screenTimeIntervalId = null;
+        let screenTimeActive = false;
+        let notificationEnabled = ('Notification' in window) && Notification.permission === 'granted';
         let camera = null;
         let stream = null;
         let timerInterval = null;
@@ -1113,6 +1470,20 @@
         let cameraStarted = false;
         let blinkClosed = false;
         let lastInstruction = '';
+        
+        // Wellness reminder state
+        let hydrationIntervalId = null;
+        const DEFAULT_HYDRATION_SECONDS = 45 * 60;
+        let hydrationCountdown = DEFAULT_HYDRATION_SECONDS;
+        let hydrationActive = false;
+
+        let lastDistanceAlertTime = 0;
+        let faceDistanceValue = 0;
+        const DISTANCE_CLOSE_THRESHOLD = 0.11;
+        
+        // Medicine task list (array of medicine objects)
+        let medicineList = [];
+        let medicineIdCounter = 0;
         
         // Eye landmarks for blink detection
         const LEFT_EYE_TOP = 159;
@@ -1126,6 +1497,58 @@
             let mins = Math.floor(seconds / 60);
             let secs = seconds % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateScreenTimeUI() {
+            if (screenTimeTimerEl) {
+                screenTimeTimerEl.textContent = formatTime(screenTimeSeconds);
+            }
+            if (screenTimeStatusEl) {
+                screenTimeStatusEl.textContent = screenTimeActive ? 'Screen timer running' : 'Screen timer paused';
+            }
+            if (screenTimeMessageEl) {
+                if (screenTimeSeconds >= 60 * 60) {
+                    screenTimeMessageEl.textContent = '⚠️ You have been on screen for over 60 minutes. Take a longer break now.';
+                } else if (screenTimeSeconds >= 20 * 60) {
+                    screenTimeMessageEl.textContent = '✅ Good session. Remember to look away for 20 seconds every 20 minutes.';
+                } else {
+                    screenTimeMessageEl.textContent = 'Track your current session and take regular breaks for healthier screen time.';
+                }
+            }
+        }
+
+        function startScreenTimer() {
+            if (screenTimeIntervalId) return;
+            screenTimeActive = true;
+            screenTimeIntervalId = setInterval(() => {
+                screenTimeSeconds++;
+                updateScreenTimeUI();
+                if (screenTimeSeconds > 0 && screenTimeSeconds % (20 * 60) === 0) {
+                    sendNotification('⏰ Screen time reminder', 'Take a 20 second away-from-screen break now.');
+                    addToHistory('⏰ Screen break reminder');
+                }
+            }, 1000);
+            updateScreenTimeUI();
+        }
+
+        function pauseScreenTimer() {
+            if (screenTimeIntervalId) {
+                clearInterval(screenTimeIntervalId);
+                screenTimeIntervalId = null;
+            }
+            screenTimeActive = false;
+            updateScreenTimeUI();
+        }
+
+        function resetScreenTimer() {
+            if (screenTimeIntervalId) {
+                clearInterval(screenTimeIntervalId);
+                screenTimeIntervalId = null;
+            }
+            screenTimeSeconds = 0;
+            screenTimeActive = false;
+            updateScreenTimeUI();
+            addToHistory('📺 Screen time tracker reset');
         }
         
         // Request notification permission
@@ -1149,10 +1572,35 @@
             if (notificationEnabled && Notification.permission === "granted") {
                 new Notification(title, {
                     body: body,
-                    icon: "https://cdn-icons-png.flaticon.com/512/2966/2966327.png",
-                    requireInteraction: true
+                    icon: "/static/icon.svg",
+                    requireInteraction: true,
+                    tag: 'ocusense-reminder'
                 });
             }
+        }
+
+        function showHub() {
+            document.getElementById('hubScreen').classList.add('active');
+            document.querySelectorAll('.module-screen').forEach(screen => screen.classList.remove('active'));
+            showBackButton(false);
+        }
+
+        function openModule(moduleId) {
+            document.getElementById('hubScreen').classList.remove('active');
+            document.querySelectorAll('.module-screen').forEach(screen => screen.classList.remove('active'));
+            const moduleScreen = document.getElementById(moduleId);
+            if (moduleScreen) moduleScreen.classList.add('active');
+            showBackButton(true);
+        }
+
+        function backToHub() {
+            showHub();
+        }
+
+        function showBackButton(visible) {
+            const backButton = document.getElementById('backButton');
+            if (!backButton) return;
+            backButton.classList.toggle('hidden', !visible);
         }
         
         // Add to alert history
@@ -1170,6 +1618,7 @@
         
         // Update instruction
         function setInstruction(message, type = 'info') {
+            if (!instructionBox) return;
             instructionBox.textContent = message;
             instructionBox.style.animation = 'none';
             instructionBox.offsetHeight;
@@ -1181,11 +1630,39 @@
             }
         }
         
+        let cameraRequested = false;
+
         // Start detection
         function startDetection() {
-            startCamera();
+            cameraRequested = true;
+            requestCameraPermission();
         }
         
+        function requestCameraPermission() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setInstruction('Your browser does not support webcam access.', 'warning');
+                return;
+            }
+
+            setInstruction('Requesting camera permission... please allow access in the browser prompt.');
+
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'camera' })
+                    .then(permissionStatus => {
+                        if (permissionStatus.state === 'denied') {
+                            setInstruction('Camera access is blocked. Please allow camera access in browser settings.');
+                            return;
+                        }
+                        startCamera();
+                    })
+                    .catch(() => {
+                        startCamera();
+                    });
+            } else {
+                startCamera();
+            }
+        }
+
         // Start camera
         function startCamera() {
             navigator.mediaDevices.getUserMedia({ 
@@ -1202,10 +1679,17 @@
                 cameraStarted = true;
                 initializeFaceDetection();
                 startTimer();
+                setInstruction('Camera access granted. Monitoring has started.');
             })
             .catch(function(error) {
-                alert('Camera access denied. Please allow camera permissions.');
                 console.error(error);
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    setInstruction('Camera permission denied. Please allow camera access in your browser settings and retry.', 'warning');
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    setInstruction('No camera found. Please connect a webcam and try again.', 'warning');
+                } else {
+                    setInstruction('Unable to access the camera. Please refresh and try again.', 'warning');
+                }
             });
         }
         
@@ -1213,7 +1697,7 @@
         function stopDetection() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
+                if (video) video.srcObject = null;
             }
             if (timerInterval) {
                 clearInterval(timerInterval);
@@ -1222,14 +1706,17 @@
             if (camera) {
                 camera.stop();
             }
+            cameraStarted = false;
             
-            overlay.textContent = 'Camera stopped';
-            faceLight.className = 'indicator-light';
-            faceStatus.textContent = 'Camera stopped';
-            faceDetectedEl.textContent = 'No';
+            if (overlay) overlay.textContent = 'Camera stopped';
+            if (faceLight) faceLight.className = 'indicator-light';
+            if (faceStatus) faceStatus.textContent = 'Camera stopped';
+            if (faceDetectedEl) faceDetectedEl.textContent = 'No';
             setInstruction('Detection stopped. Click Start to resume.');
-            statusBox.className = 'status-box';
-            statusBox.textContent = '⏸️ System Stopped';
+            if (statusBox) {
+                statusBox.className = 'status-box';
+                statusBox.textContent = '⏸️ System Stopped';
+            }
         }
         
         // Start timer
@@ -1341,6 +1828,412 @@
             }
         }
         
+        // Hydration reminder helpers
+        function updateHydrationUI() {
+            hydrationTimerEl.textContent = formatTime(hydrationCountdown);
+            hydrationStatusEl.textContent = hydrationActive
+                ? 'Hydration reminder active'
+                : 'Hydration reminder paused';
+            nextHydrationEl.textContent = hydrationActive
+                ? `Next reminder in ${formatTime(hydrationCountdown)}`
+                : 'Reminder paused';
+        }
+
+        function startHydrationReminder() {
+            if (hydrationIntervalId) return;
+            hydrationActive = true;
+            if (hydrationCountdown <= 0) hydrationCountdown = DEFAULT_HYDRATION_SECONDS;
+            hydrationIntervalId = setInterval(() => {
+                hydrationCountdown--;
+                if (hydrationCountdown <= 0) {
+                    sendNotification('💧 Hydration Reminder', 'Time to drink water and stay hydrated.');
+                    addToHistory('💧 Hydration reminder triggered');
+                    hydrationCountdown = DEFAULT_HYDRATION_SECONDS;
+                }
+                updateHydrationUI();
+            }, 1000);
+            updateHydrationUI();
+        }
+
+        function pauseHydrationReminder() {
+            if (hydrationIntervalId) {
+                clearInterval(hydrationIntervalId);
+                hydrationIntervalId = null;
+            }
+            hydrationActive = false;
+            updateHydrationUI();
+        }
+
+        function resetHydrationReminder() {
+            if (hydrationIntervalId) {
+                clearInterval(hydrationIntervalId);
+                hydrationIntervalId = null;
+            }
+            hydrationActive = false;
+            hydrationCountdown = DEFAULT_HYDRATION_SECONDS;
+            updateHydrationUI();
+            addToHistory('💧 Hydration reminder reset');
+        }
+
+        // Screen distance helpers
+        function updateDistanceStatus(landmarks) {
+            const statusElements = [cameraDistanceStatusEl].filter(Boolean);
+            const valueElements = [cameraDistanceValueEl, cameraDistancePctEl].filter(Boolean);
+            const messageElements = [cameraDistanceMessageEl].filter(Boolean);
+
+            if (!landmarks || landmarks.length === 0) {
+                statusElements.forEach(el => {
+                    el.textContent = 'Distance status unknown';
+                    el.className = 'status-box status-warning';
+                });
+                valueElements.forEach(el => {
+                    el.textContent = '--';
+                });
+                messageElements.forEach(el => {
+                    el.textContent = 'Move your face into view to initialize distance monitoring.';
+                });
+                return;
+            }
+            faceDistanceValue = calculateFaceDistance(landmarks);
+            const distancePercent = Math.min(100, Math.round(faceDistanceValue * 100));
+            valueElements.forEach(el => {
+                el.textContent = `${distancePercent}%`;
+            });
+            if (faceDistanceValue > DISTANCE_CLOSE_THRESHOLD) {
+                statusElements.forEach(el => {
+                    el.textContent = '⚠️ Too close to screen';
+                    el.className = 'status-box status-warning';
+                });
+                messageElements.forEach(el => {
+                    el.textContent = 'Lean back slightly to improve screen distance.';
+                });
+                if (Date.now() - lastDistanceAlertTime > 30000) {
+                    lastDistanceAlertTime = Date.now();
+                    sendNotification('⚠️ Screen distance warning', 'You are sitting too close to the screen.');
+                    addToHistory('⚠️ Screen distance warning triggered');
+                }
+            } else {
+                statusElements.forEach(el => {
+                    el.textContent = '✅ Safe screen distance';
+                    el.className = 'status-box status-active';
+                });
+                messageElements.forEach(el => {
+                    el.textContent = 'Good distance. Keep the screen in a comfortable range.';
+                });
+            }
+        }
+
+        function calculateFaceDistance(landmarks) {
+            const leftOuter = landmarks[33];
+            const rightOuter = landmarks[263];
+            if (!leftOuter || !rightOuter) return 0;
+            return Math.hypot(leftOuter.x - rightOuter.x, leftOuter.y - rightOuter.y);
+        }
+        
+        // Medicine task list helpers
+        function addMedicineTask() {
+            const nameInput = document.getElementById('medicineName');
+            const dosageInput = document.getElementById('medicineDosage');
+            const hourInput = document.getElementById('medicineHour');
+            const minuteInput = document.getElementById('medicineMinute');
+            const ampmInput = document.getElementById('medicineAmpm');
+            const repeatInput = document.getElementById('medicineRepeat');
+
+            const name = nameInput.value.trim();
+            const dosage = dosageInput.value.trim();
+            const hour = parseInt(hourInput.value, 10);
+            const minute = parseInt(minuteInput.value, 10);
+            const ampm = ampmInput.value;
+            const repeat = repeatInput.checked;
+
+            if (!name) {
+                addToHistory('⚠️ Please enter a medicine name');
+                return;
+            }
+            if (Number.isNaN(hour) || hour < 1 || hour > 12 || Number.isNaN(minute) || minute < 0 || minute > 59) {
+                addToHistory('⚠️ Please enter a valid alarm time');
+                return;
+            }
+
+            const formattedAlarmTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${ampm}`;
+
+            fetch('/api/medicines/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    medicine_name: name,
+                    dosage: dosage,
+                    alarm_time: formattedAlarmTime,
+                    repeat: repeat
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addToHistory(`⚠️ Error: ${data.error}`);
+                    return;
+                }
+
+                const medicine = {
+                    id: data.id,
+                    name: data.medicine_name,
+                    dosage: data.dosage,
+                    alarmTime: data.alarm_time,
+                    repeat: data.repeat,
+                    totalSeconds: data.total_seconds,
+                    countdownSeconds: data.countdown_seconds,
+                    status: data.status,
+                    intervalId: null,
+                    missedAlertInterval: null,
+                    lastAlertTime: 0
+                };
+
+                medicineList.push(medicine);
+                startMedicineCountdown(medicine.id);
+                updateMedicineTaskList();
+
+                nameInput.value = '';
+                dosageInput.value = '';
+                hourInput.value = '';
+                minuteInput.value = '';
+                ampmInput.value = 'AM';
+                repeatInput.checked = true;
+                addToHistory(`💊 Added medicine: ${name} at ${formattedAlarmTime}`);
+            })
+            .catch(error => {
+                addToHistory(`⚠️ Failed to add medicine: ${error.message}`);
+            });
+        }
+        
+        function startMedicineCountdown(medicineId) {
+            const medicine = medicineList.find(m => m.id === medicineId);
+            if (!medicine) return;
+            
+            if (medicine.intervalId) clearInterval(medicine.intervalId);
+            
+            medicine.intervalId = setInterval(() => {
+                medicine.countdownSeconds--;
+                
+                // Update backend countdown
+                fetch('/api/medicines/countdown/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        medicine_id: medicineId,
+                        countdown_seconds: medicine.countdownSeconds,
+                        status: medicine.status
+                    })
+                }).catch(error => console.error('Countdown update failed:', error));
+                
+                if (medicine.countdownSeconds <= 0) {
+                    if (medicine.status === 'Pending') {
+                        // Trigger reminder notification
+                        if (Date.now() - medicine.lastAlertTime > 1000) {
+                            medicine.lastAlertTime = Date.now();
+                            sendNotification(`💊 ${medicine.name}`, `Time to take ${medicine.name}`);
+                            addToHistory(`💊 Reminder: ${medicine.name}`);
+                            medicine.status = 'Missed';
+                            
+                            // Update backend status
+                            fetch('/api/medicines/countdown/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                body: JSON.stringify({
+                                    medicine_id: medicineId,
+                                    countdown_seconds: medicine.countdownSeconds,
+                                    status: 'Missed'
+                                })
+                            }).catch(error => console.error('Status update failed:', error));
+                            
+                            // Keep reminding every 60 seconds
+                            if (medicine.missedAlertInterval) clearInterval(medicine.missedAlertInterval);
+                            medicine.missedAlertInterval = setInterval(() => {
+                                if (medicine.status === 'Missed') {
+                                    sendNotification(`💊 ${medicine.name} (MISSED)`, `You missed taking ${medicine.name}. Please take it now.`);
+                                    addToHistory(`⚠️ Repeated reminder: ${medicine.name}`);
+                                }
+                            }, 60000);
+                        }
+                    }
+                }
+                
+                updateMedicineTaskList();
+            }, 1000);
+        }
+        
+        function markMedicineAsTaken(medicineId) {
+            const medicine = medicineList.find(m => m.id === medicineId);
+            if (!medicine) return;
+            
+            // Stop timers
+            if (medicine.intervalId) clearInterval(medicine.intervalId);
+            if (medicine.missedAlertInterval) clearInterval(medicine.missedAlertInterval);
+            
+            fetch('/api/medicines/taken/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    medicine_id: medicineId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'Pending') {
+                    medicine.status = 'Pending';
+                    medicine.countdownSeconds = data.countdown_seconds;
+                    startMedicineCountdown(medicine.id);
+                    addToHistory(`✅ ${medicine.name} taken. Next alarm scheduled.`);
+                } else {
+                    medicine.status = 'Taken';
+                    addToHistory(`✅ Marked ${medicine.name} as taken`);
+                }
+                updateMedicineTaskList();
+            })
+            .catch(error => {
+                addToHistory(`⚠️ Failed to update medicine: ${error.message}`);
+            });
+        }
+        
+        function removeMedicineTask(medicineId) {
+            const index = medicineList.findIndex(m => m.id === medicineId);
+            if (index === -1) return;
+            
+            const medicine = medicineList[index];
+            if (medicine.intervalId) clearInterval(medicine.intervalId);
+            if (medicine.missedAlertInterval) clearInterval(medicine.missedAlertInterval);
+            
+            // Delete from backend
+            fetch('/api/medicines/delete/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    medicine_id: medicineId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                medicineList.splice(index, 1);
+                addToHistory(`🗑️ Removed ${medicine.name} from reminders`);
+                updateMedicineTaskList();
+            })
+            .catch(error => {
+                addToHistory(`⚠️ Failed to delete medicine: ${error.message}`);
+            });
+        }
+        
+        function updateMedicineTaskList() {
+            const listEl = document.getElementById('medicineTaskList');
+            
+            if (medicineList.length === 0) {
+                listEl.innerHTML = '<p style="text-align:center; color:#999; margin-top:1rem;">No medicines added yet</p>';
+                return;
+            }
+            
+            listEl.innerHTML = medicineList.map(medicine => {
+                const mins = Math.floor(medicine.countdownSeconds / 60);
+                const secs = medicine.countdownSeconds % 60;
+                const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                const statusColor = medicine.status === 'Taken' ? '#d4edda' : (medicine.status === 'Missed' ? '#f8d7da' : '#e8f4f8');
+                const statusTextColor = medicine.status === 'Taken' ? '#155724' : (medicine.status === 'Missed' ? '#721c24' : '#004085');
+                const alarmLabel = medicine.alarmTime ? `Alarm: ${medicine.alarmTime}` : 'No alarm set';
+                const dosageLabel = medicine.dosage ? `Dosage: ${medicine.dosage}` : '';
+                const repeatLabel = medicine.repeat ? 'Repeat: daily' : 'One-time';
+                
+                return `
+                    <div style="background:${statusColor}; border:1px solid #ccc; border-radius:10px; padding:1rem; margin-bottom:0.8rem; display:flex; align-items:center; justify-content:space-between;">
+                        <div style="flex:1;">
+                            <strong style="color:${statusTextColor}; font-size:1.1rem;">${medicine.name}</strong><br>
+                            <small style="color:${statusTextColor};">${alarmLabel}</small><br>
+                            <small style="color:${statusTextColor};">${dosageLabel}</small><br>
+                            <small style="color:${statusTextColor};">${repeatLabel}</small><br>
+                            <small style="color:${statusTextColor}; margin-top:0.3rem; display:inline-block;">Time remaining: ${timeStr}</small><br>
+                            <small style="color:${statusTextColor}; margin-top:0.3rem; display:inline-block;">Status: <strong>${medicine.status}</strong></small>
+                        </div>
+                        <div style="display:flex; gap:0.5rem;">
+                            ${medicine.status !== 'Taken' ? `<button onclick="markMedicineAsTaken(${medicine.id})" style="background:#28a745; padding:8px 12px; min-width:auto; font-size:0.9rem;"><i class="fas fa-check"></i> Taken</button>` : ''}
+                            <button onclick="removeMedicineTask(${medicine.id})" style="background:#dc3545; padding:8px 12px; min-width:auto; font-size:0.9rem;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        // Get CSRF token for AJAX requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Initialize medicine list on page load
+        function initializeMedicineUI() {
+            loadMedicinesFromBackend();
+        }
+        
+        function loadMedicinesFromBackend() {
+            fetch('/api/medicines/get/', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                medicineList = [];
+                if (data.medicines && data.medicines.length > 0) {
+                    data.medicines.forEach(medicine => {
+                        const medicineObj = {
+                            id: medicine.id,
+                            name: medicine.medicine_name,
+                            dosage: medicine.dosage,
+                            alarmTime: medicine.alarm_time,
+                            repeat: medicine.repeat,
+                            totalSeconds: medicine.total_seconds,
+                            countdownSeconds: medicine.countdown_seconds,
+                            status: medicine.status,
+                            intervalId: null,
+                            missedAlertInterval: null,
+                            lastAlertTime: 0
+                        };
+                        medicineList.push(medicineObj);
+                        
+                        // Start countdown only if still pending or missed
+                        if (medicine.status === 'Pending' || medicine.status === 'Missed') {
+                            startMedicineCountdown(medicine.id);
+                        }
+                    });
+                }
+                updateMedicineTaskList();
+            })
+            .catch(error => {
+                console.error('Failed to load medicines:', error);
+                updateMedicineTaskList();
+            });
+        }
+        
         // Initialize face detection
         function initializeFaceDetection() {
             const faceMesh = new FaceMesh({
@@ -1389,6 +2282,9 @@
             faceDetectedEl.textContent = 'Yes';
             
             const landmarks = results.multiFaceLandmarks[0];
+            
+            // Update distance status
+            updateDistanceStatus(landmarks);
             
             // Detect blink by measuring eye openness
             let leftEyeOpen = Math.abs(landmarks[LEFT_EYE_TOP].y - landmarks[LEFT_EYE_BOTTOM].y);
@@ -1439,12 +2335,40 @@
             setInstruction('Reset complete. Start monitoring.');
         }
         
+        // Pause webcam tracking when the page is hidden, resume when visible again
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                setInstruction('Background webcam tracking is not supported. Keep this tab active to continue blink detection.');
+                stopDetection();
+            } else {
+                if (cameraRequested && !cameraStarted) {
+                    setInstruction('Tab active again. Restarting eye monitoring.');
+                    requestCameraPermission();
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         // Clean up on page unload
         window.addEventListener('beforeunload', function() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
         });
+
+        // Register the service worker for PWA installability
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service worker registration failed:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
