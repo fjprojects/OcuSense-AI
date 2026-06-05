@@ -3,6 +3,10 @@ from . import views
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('screen-health/', views.screen_health, name='screen_health'),
+    path('camera-monitoring/', views.camera_monitoring, name='camera_monitoring'),
+    path('wellness-tracker/', views.wellness_tracker, name='wellness_tracker'),
+    path('medicine-reminder/', views.medicine_reminder, name='medicine_reminder'),
     path('sw.js', views.service_worker, name='service_worker'),
     path('api/medicines/add/', views.add_medicine, name='add_medicine'),
     path('api/medicines/get/', views.get_medicines, name='get_medicines'),

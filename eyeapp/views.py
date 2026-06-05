@@ -33,6 +33,26 @@ def home(request):
     return render(request, "home.html", {"message": message})
 
 
+def screen_health(request):
+    return render(request, "screen_health.html")
+
+
+def camera_monitoring(request):
+    return render(request, "camera_monitoring.html")
+
+
+def wellness_tracker(request):
+    return render(request, "wellness_tracker.html")
+
+
+def medicine_reminder(request):
+    if request.method == "POST":
+        # Handle medicine reminder form
+        pass
+    reminders = MedicineReminder.objects.all()
+    return render(request, "medicine_reminder.html", {"reminders": reminders})
+
+
 def parse_alarm_time(alarm_time_str):
     alarm_time_str = alarm_time_str.strip().upper()
     try:

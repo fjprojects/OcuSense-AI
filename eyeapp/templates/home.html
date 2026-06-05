@@ -301,6 +301,9 @@
             padding: 0 20px;
             flex: 1;
             overflow: hidden;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .hub-screen,
@@ -328,6 +331,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            flex: 1;
         }
 
         .hub-card {
@@ -394,6 +398,7 @@
             cursor: pointer;
             color: #f8fcff;
             text-align: left;
+            text-decoration: none;
             position: relative;
             overflow: hidden;
             transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
@@ -1214,26 +1219,26 @@
                 </div>
 
                 <div class="launcher-grid">
-                    <button class="game-card" onclick="openModule('screenTimeModule')">
+                    <div class="game-card" onclick="openModule('screenTimeModule'); return false;">
                         <div class="card-icon"><i class="fas fa-clock"></i></div>
                         <div class="card-title">Screen Health Check</div>
                         <div class="card-desc">Track screen time and monitor viewing distance together.</div>
-                    </button>
-                    <button class="game-card" onclick="openModule('cameraModule')">
+                    </div>
+                    <div class="game-card" onclick="openModule('cameraModule'); return false;">
                         <div class="card-icon"><i class="fas fa-video"></i></div>
                         <div class="card-title">Camera Monitoring</div>
                         <div class="card-desc">Activate AI blink detection and face tracking in real time.</div>
-                    </button>
-                    <button class="game-card" onclick="openModule('wellnessModule')">
+                    </div>
+                    <div class="game-card" onclick="openModule('wellnessModule'); return false;">
                         <div class="card-icon"><i class="fas fa-heartbeat"></i></div>
                         <div class="card-title">Wellness Tracker</div>
                         <div class="card-desc">Stay hydrated and manage wellness reminders with one tap.</div>
-                    </button>
-                    <button class="game-card" onclick="openModule('medicineModule')">
+                    </div>
+                    <div class="game-card" onclick="openModule('medicineModule'); return false;">
                         <div class="card-icon"><i class="fas fa-pills"></i></div>
                         <div class="card-title">Medicine Reminder</div>
                         <div class="card-desc">Schedule eye drops and medication alerts quickly.</div>
-                    </button>
+                    </div>
                 </div>
             </div>
 
@@ -1425,23 +1430,6 @@
             </div>
         </div>
     </main>
-
-    <!-- Load MediaPipe -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    
-    <!-- Scroll Animation Script -->
-    <script>
-        // Intersection Observer for scroll animations
-        document.addEventListener('DOMContentLoaded', function() {
-            showHub();
-            updateHydrationUI();
-            initializeMedicineUI();
-            updateDistanceStatus(null);
-            updateScreenTimeUI();
-        });
-    </script>
-    
 
     <!-- Load MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
@@ -2390,6 +2378,27 @@
                         console.error('Service worker registration failed:', error);
                     });
             });
+        }
+
+        // Initialize UI on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            showHub();
+            updateHydrationUI();
+            initializeMedicineUI();
+            updateDistanceStatus(null);
+            updateScreenTimeUI();
+        });
+
+        // Fallback initialization if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            // Still loading, wait for DOMContentLoaded
+        } else {
+            // Already loaded, initialize immediately
+            showHub();
+            updateHydrationUI();
+            initializeMedicineUI();
+            updateDistanceStatus(null);
+            updateScreenTimeUI();
         }
     </script>
 </body>
