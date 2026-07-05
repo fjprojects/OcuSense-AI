@@ -1,107 +1,24 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0f5132">
-    <title>Wellness Tracker - Ocusense AI</title>
-    <link rel="manifest" href="{% static 'manifest.json' %}">
-    <link rel="icon" href="{% static 'icon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-            background: radial-gradient(circle at top, #04090f 0%, #08151f 32%, #06111c 100%);
-            min-height: 100vh;
-            color: #e6f8ff;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            color: #4ad7a8;
-            margin-bottom: 1rem;
-        }
-
-        .back-button {
-            display: inline-block;
-            margin-bottom: 2rem;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e6f8ff;
-            text-decoration: none;
-            border-radius: 25px;
-            transition: all 0.3s ease;
-        }
-
-        .back-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .content {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 2rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .feature-description {
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .placeholder {
-            text-align: center;
-            padding: 3rem;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .placeholder i {
-            font-size: 4rem;
-            color: #4ad7a8;
-            margin-bottom: 1rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <a href="{% url 'home' %}" class="back-button"><i class="fas fa-arrow-left"></i> Back to Home</a>
-        
-        <div class="header">
-            <h1><i class="fas fa-heartbeat"></i> Wellness Tracker</h1>
+{% extends 'base.html' %}
+{% block title %}Wellness Tracker | Ocusense Arena{% endblock %}
+{% block content %}
+<div class="row gy-4 justify-content-center">
+    <div class="col-xl-8 col-lg-10">
+        <div class="glass-card p-5 mb-4 text-center">
+            <p class="text-uppercase text-accent mb-3 small-note">Wellness tracker merged</p>
+            <h1 class="section-heading mb-3">Wellness tracking is now part of Screen Health</h1>
+            <p class="small-note">Hydration reminders, breaks, and screen wellness have been combined into a single unified workflow.</p>
+            <a class="btn btn-accent mt-3" href="{% url 'screen_health' %}"><i class="fas fa-arrow-right me-2"></i>Go to Screen Health</a>
         </div>
-        
-        <div class="content">
-            <div class="feature-description">
-                Stay hydrated and manage wellness reminders with one tap.
-            </div>
-            
-            <div class="placeholder">
-                <i class="fas fa-tint"></i>
-                <h3>Wellness Monitoring</h3>
-                <p>This feature is under development. It will help you track hydration and set wellness reminders.</p>
-            </div>
+
+        <div class="glass-card p-4 mb-4">
+            <h5 class="mb-3">What changed</h5>
+            <ul class="list-unstyled small-note mb-0">
+                <li class="mb-3"><i class="fas fa-circle-notch text-accent me-2"></i>Screen time tracker and hydration reminders are now together.</li>
+                <li class="mb-3"><i class="fas fa-circle-notch text-accent me-2"></i>20-20-20 breaks are part of the same health workflow.</li>
+                <li class="mb-3"><i class="fas fa-circle-notch text-accent me-2"></i>All wellness features are accessible from the Screen Health module.</li>
+                <li><i class="fas fa-circle-notch text-accent me-2"></i>This page now points you to the unified experience.</li>
+            </ul>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

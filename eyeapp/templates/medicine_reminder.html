@@ -1,146 +1,36 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0f5132">
-    <title>Medicine Reminder - Ocusense AI</title>
-    <link rel="manifest" href="{% static 'manifest.json' %}">
-    <link rel="icon" href="{% static 'icon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-            background: radial-gradient(circle at top, #04090f 0%, #08151f 32%, #06111c 100%);
-            min-height: 100vh;
-            color: #e6f8ff;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            color: #4ad7a8;
-            margin-bottom: 1rem;
-        }
-
-        .back-button {
-            display: inline-block;
-            margin-bottom: 2rem;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e6f8ff;
-            text-decoration: none;
-            border-radius: 25px;
-            transition: all 0.3s ease;
-        }
-
-        .back-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .content {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 2rem;
-            backdrop-filter: blur(10px);
-            margin-bottom: 2rem;
-        }
-
-        .feature-description {
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .reminder-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .reminder-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .reminder-info h3 {
-            color: #4ad7a8;
-            margin-bottom: 0.5rem;
-        }
-
-        .reminder-info p {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
-        }
-
-        .placeholder {
-            text-align: center;
-            padding: 3rem;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .placeholder i {
-            font-size: 4rem;
-            color: #4ad7a8;
-            margin-bottom: 1rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <a href="{% url 'home' %}" class="back-button"><i class="fas fa-arrow-left"></i> Back to Home</a>
-        
-        <div class="header">
-            <h1><i class="fas fa-pills"></i> Medicine Reminder</h1>
+{% extends 'base.html' %}
+{% block title %}Medicine Reminder | Ocusense Arena{% endblock %}
+{% block content %}
+<div class="row gy-4">
+    <div class="col-lg-6">
+        <div class="glass-card p-5 mb-4">
+            <p class="text-uppercase text-accent mb-3 small-note">Medicine Reminder</p>
+            <h1 class="section-heading mb-3">Schedule eye care medication clearly</h1>
+            <p class="small-note">Add reminders, review upcoming alerts, and keep medicine details handy.</p>
         </div>
-        
-        <div class="content">
-            <div class="feature-description">
-                Schedule eye drops and medication alerts quickly.
-            </div>
-            
-            {% if reminders %}
-                <ul class="reminder-list">
-                    {% for reminder in reminders %}
-                        <li class="reminder-item">
-                            <div class="reminder-info">
-                                <h3>{{ reminder.medicine_name }}</h3>
-                                <p>Dosage: {{ reminder.dosage }} | Time: {{ reminder.alarm_time }}</p>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <div class="placeholder">
-                    <i class="fas fa-calendar-plus"></i>
-                    <h3>No Medicine Reminders</h3>
-                    <p>Add your first medicine reminder to get started.</p>
+        <div class="glass-card p-4 mb-4">
+            <h5 class="mb-3">Add Medicine Reminder</h5>
+            <form id="medicineForm">
+                <div class="mb-3"><label class="form-label text-white-75">Medicine name</label><input id="medicineName" type="text" class="form-control bg-transparent text-white border-light" placeholder="e.g. Eye drops" required></div>
+                <div class="mb-3"><label class="form-label text-white-75">Dosage</label><input id="medicineDosage" type="text" class="form-control bg-transparent text-white border-light" placeholder="Optional dosage"></div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6"><label class="form-label text-white-75">Date</label><input id="medicineDate" type="date" class="form-control bg-transparent text-white border-light"></div>
+                    <div class="col-md-6"><label class="form-label text-white-75">Time</label><input id="medicineTime" type="time" class="form-control bg-transparent text-white border-light"></div>
                 </div>
-            {% endif %}
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="medicineRepeat">
+                    <label class="form-check-label small-note" for="medicineRepeat">Repeat daily</label>
+                </div>
+                <button type="submit" class="btn btn-accent">Add Reminder</button>
+            </form>
+            <div class="mt-3 small-note" id="medicineMessage"></div>
         </div>
     </div>
-</body>
-</html>
+    <div class="col-lg-6">
+        <div class="glass-card p-4 h-100">
+            <h5 class="mb-3">Upcoming reminders</h5>
+            <div id="medicineList" class="list-unstyled"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

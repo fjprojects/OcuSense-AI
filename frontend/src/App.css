@@ -1,0 +1,144 @@
+.app {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(74, 215, 168, 0.16), transparent 28%),
+              radial-gradient(circle at bottom right, rgba(63, 146, 255, 0.10), transparent 22%),
+              #04090f;
+  color: #e6f8ff;
+}
+
+.page-shell {
+  min-height: calc(100vh - 92px);
+  padding: 3rem 0 4rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Glass Card */
+.glass-card {
+  background: rgba(15, 25, 40, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+  border-radius: 24px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-accent {
+  background: #4ad7a8;
+  color: #03110c;
+}
+
+.btn-accent:hover {
+  background: #3ec498;
+}
+
+.btn-danger {
+  background: #fc8181;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #f56565;
+}
+
+.btn-warning {
+  background: #ecc94b;
+  color: #744210;
+}
+
+.btn-warning:hover {
+  background: #d69e2e;
+}
+
+.btn-outline-light {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #e6f8ff;
+}
+
+.btn-outline-light:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Status Pill */
+.status-pill {
+  background: rgba(74, 215, 168, 0.14);
+  color: #d9fff2;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+  display: inline-block;
+}
+
+/* Progress Bar */
+.progress {
+  height: 1.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  transition: width 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Toast Container */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-shell {
+    padding: 1.5rem 0 2rem;
+  }
+}

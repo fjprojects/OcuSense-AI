@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Contact | Ocusense Arena{% endblock %}
+
+{% block content %}
+<div class="row gy-4">
+    <div class="col-lg-6">
+        <div class="glass-card p-5 mb-4">
+            <p class="text-uppercase text-accent mb-3 small-note">Contact us</p>
+            <h1 class="section-heading mb-3">Let's connect</h1>
+            <p class="small-note">Send feedback, request a demo, or ask about improvements for the EyeCare AI project.</p>
+        </div>
+        
+        <div class="glass-card p-4">
+            <h5 class="mb-3">Contact form</h5>
+            
+            <!-- Alert Messages -->
+            <div id="alertMessage" style="display:none;" class="alert mb-3"></div>
+            
+            <form id="contactForm">
+                <div class="mb-3">
+                    <label class="form-label text-white-75">Name</label>
+                    <input type="text" id="contactName" class="form-control bg-transparent text-white border-light" placeholder="Your name" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-white-75">Email</label>
+                    <input type="email" id="contactEmail" class="form-control bg-transparent text-white border-light" placeholder="email@example.com" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-white-75">Message</label>
+                    <textarea id="contactMessage" class="form-control bg-transparent text-white border-light" rows="4" placeholder="Hi, I'd like to..." required></textarea>
+                </div>
+                <button type="submit" id="sendBtn" class="btn btn-accent">
+                    Send Message
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="glass-card p-4 h-100 feature-list-card">
+            <h5 class="mb-3">Need help?</h5>
+            <p class="small-note mb-4">Reach out by email or connect on social media.</p>
+            <p class="mb-2"><strong>Email:</strong> <a class="text-accent" href="mailto:support@ocusense.ai">support@ocusense.ai</a></p>
+            <p class="mb-4"><strong>Social:</strong></p>
+            <a class="btn btn-outline-light me-2 mb-2" href="https://www.linkedin.com/in/francis-job/"><i class="fab fa-linkedin me-2"></i>LinkedIn</a>
+            <a class="btn btn-outline-light mb-2" href="#"><i class="fab fa-github me-2"></i>GitHub</a>
+            <a class="btn btn-outline-light me-2 mb-2" href="https://www.instagram.com/francissjob/" target="_blank">
+                <i class="fab fa-instagram me-2"></i>Instagram
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .alert-success {
+        background: rgba(74, 215, 168, 0.2);
+        border: 1px solid #4ad7a8;
+        color: #4ad7a8;
+        border-radius: 8px;
+        padding: 12px 16px;
+    }
+    .alert-danger {
+        background: rgba(252, 129, 129, 0.2);
+        border: 1px solid #fc8181;
+        color: #fc8181;
+        border-radius: 8px;
+        padding: 12px 16px;
+    }
+    .alert-warning {
+        background: rgba(236, 201, 75, 0.2);
+        border: 1px solid #ecc94b;
+        color: #ecc94b;
+        border-radius: 8px;
+        padding: 12px 16px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contactForm');
+    const alertDiv = document.getElementById('alertMessage');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const name = document.getElementById('contactName').value.trim();
+        const email = document.getElementById('contactEmail').value.trim();
+        const message = document.getElementById('contactMessage').value.trim();
+        
+        // Validate
+        if (!name || !email || !message) {
+            showAlert('Please fill all fields', 'danger');
+            return;
+        }
+        
+        if (!email.includes('@') || !email.includes('.')) {
+            showAlert('Please enter a valid email address', 'danger');
+            return;
+        }
+        
+        // Disable button
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
+        
+        try {
+            const response = await fetch('/api/contact/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, email, message })
+            });
+            
+            const data = await response.json();
+            console.log('Response:', data);
+            
+            if (response.ok && data.status === 'success') {
+                showAlert('✅ ' + data.message, 'success');
+                form.reset();
+            } else {
+                showAlert('❌ ' + (data.message || 'Something went wrong'), 'danger');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('❌ Network error. Please try again.', 'danger');
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Message';
+        }
+    });
+    
+    function showAlert(message, type) {
+        alertDiv.textContent = message;
+        alertDiv.className = 'alert alert-' + type + ' mb-3';
+        alertDiv.style.display = 'block';
+        
+        // Auto hide after 5 seconds
+        clearTimeout(window.alertTimeout);
+        window.alertTimeout = setTimeout(() => {
+            alertDiv.style.display = 'none';
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

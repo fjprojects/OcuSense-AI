@@ -1,19 +1,21 @@
 from datetime import datetime, timedelta
-
-import os
 import json
+import os
+import logging
 
 from django.conf import settings
-from django.http import FileResponse, HttpResponse, JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt  # <-- ADD THIS IMPORT
 from django.utils import timezone
 from .models import MedicineReminder
 
+logger = logging.getLogger(__name__)
+
+
 def home(request):
-
     message = ""
-
     if request.method == "POST":
         screen_time = request.POST.get("time", "")
         try:
@@ -30,35 +32,47 @@ def home(request):
         else:
             message = "Screen time is safe."
 
-    return render(request, "home.html", {"message": message})
+    return render(request, "home.html", {"message": message, "active_page": "home"})
 
 
 def screen_health(request):
-    return render(request, "screen_health.html")
+    return render(request, "screen_health.html", {"active_page": "screen_health"})
 
 
 def camera_monitoring(request):
-    return render(request, "camera_monitoring.html")
-
-
-def wellness_tracker(request):
-    return render(request, "wellness_tracker.html")
+    return render(request, "camera_monitoring.html", {"active_page": "camera_monitoring"})
 
 
 def medicine_reminder(request):
-    if request.method == "POST":
-        # Handle medicine reminder form
-        pass
-    reminders = MedicineReminder.objects.all()
-    return render(request, "medicine_reminder.html", {"reminders": reminders})
+    reminders = MedicineReminder.objects.filter(active=True)
+    return render(request, "medicine_reminder.html", {"reminders": reminders, "active_page": "medicine_reminder"})
+
+
+def about(request):
+    return render(request, "about.html", {"active_page": "about"})
+
+
+def contact(request):
+    return render(request, "contact.html", {"active_page": "contact"})
+
+
+def service_worker(request):
+    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+    if os.path.exists(sw_path):
+        return FileResponse(open(sw_path, 'rb'), content_type='application/javascript')
+    return JsonResponse({'error': 'Service worker not found'}, status=404)
 
 
 def parse_alarm_time(alarm_time_str):
     alarm_time_str = alarm_time_str.strip().upper()
+    parsed = None
     try:
-        parsed = datetime.strptime(alarm_time_str, '%I:%M %p')
+        if 'AM' in alarm_time_str or 'PM' in alarm_time_str:
+            parsed = datetime.strptime(alarm_time_str, '%I:%M %p')
+        else:
+            parsed = datetime.strptime(alarm_time_str, '%H:%M')
     except ValueError:
-        raise ValueError('Alarm time must use hh:mm AM/PM format, for example 07:30 PM')
+        raise ValueError('Alarm time must use hh:mm or hh:mm AM/PM format')
 
     now = timezone.localtime()
     scheduled = datetime(
@@ -75,12 +89,51 @@ def parse_alarm_time(alarm_time_str):
     return scheduled_dt
 
 
+def parse_alarm_datetime(alarm_date_str, alarm_time_str):
+    if not alarm_time_str:
+        raise ValueError('Alarm time is required')
+
+    time_str = alarm_time_str.strip()
+    date_str = alarm_date_str.strip() if alarm_date_str else ''
+    tz = timezone.get_current_timezone()
+
+    if date_str:
+        try:
+            date_part = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            raise ValueError('Date must use yyyy-mm-dd format')
+
+        try:
+            if 'AM' in time_str or 'PM' in time_str:
+                time_part = datetime.strptime(time_str, '%I:%M %p').time()
+            else:
+                time_part = datetime.strptime(time_str, '%H:%M').time()
+        except ValueError:
+            raise ValueError('Time must use hh:mm or hh:mm AM/PM format')
+
+        scheduled = datetime(
+            year=date_part.year,
+            month=date_part.month,
+            day=date_part.day,
+            hour=time_part.hour,
+            minute=time_part.minute,
+        )
+        scheduled_dt = timezone.make_aware(scheduled, tz)
+        if scheduled_dt <= timezone.localtime():
+            raise ValueError('Scheduled date and time must be in the future')
+        return scheduled_dt
+
+    return parse_alarm_time(time_str)
+
+
+@csrf_exempt
 @require_http_methods(["POST"])
 def add_medicine(request):
     try:
         data = json.loads(request.body)
         medicine_name = data.get('medicine_name', '').strip()
         dosage = data.get('dosage', '').strip()
+        alarm_date = data.get('alarm_date', '').strip()
         alarm_time = data.get('alarm_time', '').strip()
         repeat = bool(data.get('repeat', False))
         interval_minutes = int(data.get('interval_minutes', 0))
@@ -92,7 +145,7 @@ def add_medicine(request):
         total_seconds = 0
 
         if alarm_time:
-            next_reminder_time = parse_alarm_time(alarm_time)
+            next_reminder_time = parse_alarm_datetime(alarm_date, alarm_time)
             total_seconds = int((next_reminder_time - timezone.localtime()).total_seconds())
         elif interval_minutes > 0:
             next_reminder_time = timezone.now() + timedelta(minutes=interval_minutes)
@@ -134,7 +187,6 @@ def add_medicine(request):
 def get_medicines(request):
     medicines = MedicineReminder.objects.filter(active=True).order_by('-created_at')
     medicine_list = []
-    
     for medicine in medicines:
         medicine_list.append({
             'id': medicine.id,
@@ -149,19 +201,17 @@ def get_medicines(request):
             'next_reminder_time': medicine.next_reminder_time.isoformat(),
             'created_at': medicine.created_at.isoformat()
         })
-    
     return JsonResponse({'medicines': medicine_list})
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def mark_medicine_taken(request):
     try:
         data = json.loads(request.body)
         medicine_id = data.get('medicine_id')
-        
         medicine = MedicineReminder.objects.get(id=medicine_id)
         medicine.mark_taken()
-        
         return JsonResponse({
             'id': medicine.id,
             'status': medicine.status,
@@ -174,16 +224,15 @@ def mark_medicine_taken(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def delete_medicine(request):
     try:
         data = json.loads(request.body)
         medicine_id = data.get('medicine_id')
-        
         medicine = MedicineReminder.objects.get(id=medicine_id)
         medicine.active = False
         medicine.save()
-        
         return JsonResponse({'id': medicine.id, 'deleted': True})
     except MedicineReminder.DoesNotExist:
         return JsonResponse({'error': 'Medicine not found'}, status=404)
@@ -191,6 +240,7 @@ def delete_medicine(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def update_medicine_countdown(request):
     try:
@@ -198,26 +248,87 @@ def update_medicine_countdown(request):
         medicine_id = data.get('medicine_id')
         countdown_seconds = int(data.get('countdown_seconds', 0))
         status = data.get('status', 'Pending')
-        
         medicine = MedicineReminder.objects.get(id=medicine_id)
         medicine.countdown_seconds = countdown_seconds
         medicine.status = status
-        medicine.save()
-        
-        return JsonResponse({
-            'id': medicine.id,
-            'countdown_seconds': medicine.countdown_seconds,
-            'status': medicine.status
-        })
+        medicine.save(update_fields=['countdown_seconds', 'status', 'updated_at'])
+        return JsonResponse({'id': medicine.id, 'countdown_seconds': medicine.countdown_seconds, 'status': medicine.status})
     except MedicineReminder.DoesNotExist:
         return JsonResponse({'error': 'Medicine not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
 
-@require_http_methods(["GET"])
-def service_worker(request):
-    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
-    if os.path.exists(sw_path):
-        return FileResponse(open(sw_path, 'rb'), content_type='application/javascript')
-    return HttpResponse('/* Service worker not found */', content_type='application/javascript', status=404)
+# ==================== CONTACT API ====================
+@csrf_exempt
+@require_http_methods(["POST"])
+def contact_api(request):
+    """
+    Handle contact form submissions
+    """
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip()
+        message = data.get('message', '').strip()
+        
+        # Validate
+        if not name:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please enter your name'
+            }, status=400)
+        
+        if not email:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please enter your email'
+            }, status=400)
+        
+        # Simple email validation
+        if '@' not in email or '.' not in email:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please enter a valid email address'
+            }, status=400)
+        
+        if not message:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please enter your message'
+            }, status=400)
+        
+        # Log the message
+        logger.info(f"📧 Contact Form: {name} ({email}) - {message[:50]}...")
+        
+        # Save to file (simple storage)
+        log_dir = os.path.join(settings.BASE_DIR, 'contact_logs')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        
+        log_file = os.path.join(log_dir, f'contact_{datetime.now().strftime("%Y-%m-%d")}.txt')
+        
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Name: {name}\n")
+            f.write(f"Email: {email}\n")
+            f.write(f"Message:\n{message}\n")
+            f.write(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': '✅ Message sent successfully! We will get back to you soon.'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid data format'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Contact form error: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Something went wrong. Please try again.'
+        }, status=500)
