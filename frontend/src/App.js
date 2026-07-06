@@ -17,8 +17,8 @@ function App() {
     // Service Worker Registration
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/static/sw.js')
-        .then(() => console.log('✅ Service Worker registered'))
-        .catch((err) => console.warn('❌ SW registration failed:', err));
+        .then(() => console.log(' Service Worker registered'))
+        .catch((err) => console.warn(' SW registration failed:', err));
     }
 
     // Notification Permission
