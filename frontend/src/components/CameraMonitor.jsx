@@ -36,6 +36,7 @@ const CameraMonitor = () => {
   const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
   const sessionIntervalRef = useRef(null);
+  const isMounted = useRef(true); // <-- MOVED HERE
   const { showToast } = useToast();
   
   // ==================== BLINK DETECTION REFS ====================
@@ -47,8 +48,22 @@ const CameraMonitor = () => {
   const BLINK_THRESHOLD = 2;
   const EAR_THRESHOLD = 0.18;
 
-  // ==================== STOP CAMERA FUNCTION (DEFINED EARLY) ====================
+  // ==================== TRACK MOUNT STATE ====================
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // ==================== STOP CAMERA FUNCTION ====================
   const stopCamera = useCallback(() => {
+    // Prevent multiple calls
+    if (!isCameraActive) {
+      console.log('Camera already stopped');
+      return;
+    }
+
     if (cameraRef.current) {
       try { cameraRef.current.stop(); } catch (e) {}
       cameraRef.current = null;
@@ -77,10 +92,13 @@ const CameraMonitor = () => {
     setFaceDetected(false);
     setBlinkRate(0);
     
-    showToast('Camera stopped', 'info');
-  }, [showToast]);
+    // Only show toast if component is still mounted
+    if (isMounted.current) {
+      showToast('Camera stopped', 'info');
+    }
+  }, [isCameraActive, showToast]);
 
-  // ==================== START CAMERA FUNCTION (DEFINED EARLY) ====================
+  // ==================== START CAMERA FUNCTION ====================
   const startCamera = useCallback(async () => {
     try {
       setIsLoading(true);
