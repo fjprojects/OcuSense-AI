@@ -12,35 +12,40 @@ const HydrationTracker = () => {
 
   // Load state from localStorage
   useEffect(() => {
+    loadState();
+    
+    // Check for date change every minute
+    const interval = setInterval(() => {
+      checkDateChange();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadState = () => {
     const saved = localStorage.getItem('hydrationState');
     if (saved) {
       const state = JSON.parse(saved);
       
-      // Check if last drink was today
       const today = new Date().toDateString();
       const lastDate = state.lastDrinkDate ? new Date(state.lastDrinkDate).toDateString() : null;
       
       if (lastDate === today) {
-        // Today's glasses
         const todayHistory = state.history && state.history[today] ? state.history[today] : 0;
         setTodayGlasses(todayHistory);
         setGlasses(todayHistory);
       } else {
-        // Reset for new day
         setTodayGlasses(0);
         setGlasses(0);
         
-        // Check streak
         if (lastDate) {
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toDateString();
           
           if (state.history && state.history[yesterdayStr] && state.history[yesterdayStr] >= target) {
-            // Streak continues
             setStreak(state.streak || 0);
           } else {
-            // Streak broken
             setStreak(0);
           }
         }
@@ -49,32 +54,48 @@ const HydrationTracker = () => {
       setLastDrinkDate(state.lastDrinkDate || null);
       setHistory(state.history || {});
       
-      // Update glasses to show today's count
       if (state.history && state.history[today]) {
         setGlasses(state.history[today]);
         setTodayGlasses(state.history[today]);
       }
     }
-  }, []);
+  };
 
-  // Save state
-  useEffect(() => {
+  const checkDateChange = () => {
     const today = new Date().toDateString();
-    const newHistory = { ...history };
-    newHistory[today] = todayGlasses;
-    
-    const state = {
-      glasses: todayGlasses,
-      history: newHistory,
-      streak: streak,
-      lastDrinkDate: lastDrinkDate
-    };
-    localStorage.setItem('hydrationState', JSON.stringify(state));
-  }, [todayGlasses, streak, lastDrinkDate, history]);
+    const savedState = localStorage.getItem('hydrationState');
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      const savedDate = state.lastDrinkDate ? new Date(state.lastDrinkDate).toDateString() : null;
+      
+      if (savedDate !== today && todayGlasses === 0) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toDateString();
+        
+        if (state.history && state.history[yesterdayStr] && state.history[yesterdayStr] >= target) {
+          // Streak continues
+        } else {
+          setStreak(0);
+          const newState = { ...state, streak: 0 };
+          localStorage.setItem('hydrationState', JSON.stringify(newState));
+        }
+        
+        setTodayGlasses(0);
+        setGlasses(0);
+        const newState = { 
+          ...state, 
+          glasses: 0,
+          lastDrinkDate: null 
+        };
+        localStorage.setItem('hydrationState', JSON.stringify(newState));
+      }
+    }
+  };
 
   const addGlass = () => {
     if (todayGlasses >= target) {
-      showToast(' Goal reached! You\'re fully hydrated today!', 'success');
+      showToast('Goal reached! You\'re fully hydrated today!', 'success');
       return;
     }
 
@@ -89,20 +110,19 @@ const HydrationTracker = () => {
     setHistory(newHistory);
 
     if (newCount === target) {
-      // Goal reached! Update streak
       const newStreak = streak + 1;
       setStreak(newStreak);
       
-      showToast(` Amazing! You reached your hydration goal!  ${newStreak} day streak!`, 'success');
+      showToast(`Amazing! You reached your hydration goal! ${newStreak} day streak!`, 'success');
       
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(' Goal Reached!', {
-          body: `You drank 8 glasses of water today!  ${newStreak} day streak!`,
+        new Notification('Goal Reached!', {
+          body: `You drank 8 glasses of water today! ${newStreak} day streak!`,
           icon: '/icon.svg'
         });
       }
     } else {
-      showToast(` ${newCount}/${target} glasses - Keep going!`, 'info');
+      showToast(`${newCount}/${target} glasses - Keep going!`, 'info');
     }
   };
 
@@ -115,8 +135,7 @@ const HydrationTracker = () => {
     newHistory[today] = 0;
     setHistory(newHistory);
     
-    // Don't reset streak on manual reset
-    showToast(' Today\'s hydration reset', 'info');
+    showToast('Today\'s hydration reset', 'info');
   };
 
   const resetAll = () => {
@@ -127,7 +146,7 @@ const HydrationTracker = () => {
       setHistory({});
       setLastDrinkDate(null);
       localStorage.removeItem('hydrationState');
-      showToast(' All hydration data reset', 'info');
+      showToast('All hydration data reset', 'info');
     }
   };
 
@@ -139,14 +158,29 @@ const HydrationTracker = () => {
   };
 
   const getStreakEmoji = () => {
-    if (streak >= 30) return '🏆';
-    if (streak >= 14) return '🔥';
-    if (streak >= 7) return '💪';
-    if (streak >= 3) return '🌟';
-    return '💧';
+    if (streak >= 30) return 'Trophy';
+    if (streak >= 14) return 'Fire';
+    if (streak >= 7) return 'Strong';
+    if (streak >= 3) return 'Star';
+    return 'Drop';
   };
 
   const percentage = Math.min((todayGlasses / target) * 100, 100);
+
+  // Save state whenever it changes
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const newHistory = { ...history };
+    newHistory[today] = todayGlasses;
+    
+    const state = {
+      glasses: todayGlasses,
+      history: newHistory,
+      streak: streak,
+      lastDrinkDate: lastDrinkDate
+    };
+    localStorage.setItem('hydrationState', JSON.stringify(state));
+  }, [todayGlasses, streak, lastDrinkDate, history]);
 
   return (
     <div className="glass-card p-4 h-100">
@@ -192,12 +226,12 @@ const HydrationTracker = () => {
           <strong>{todayGlasses}</strong> / {target} glasses today
         </p>
         <p className="small-note mb-0">
-          {todayGlasses >= target ? ' Goal Met!' : `${target - todayGlasses} remaining`}
+          {todayGlasses >= target ? 'Goal Met!' : `${target - todayGlasses} remaining`}
         </p>
       </div>
 
       <div className="d-flex flex-wrap gap-2 mb-3">
-        <button className="btn btn-outline-light btn-sm" onClick={addGlass}>
+        <button className="btn btn-accent btn-sm" onClick={addGlass}>
           + Add Glass
         </button>
         <button className="btn btn-outline-light btn-sm" onClick={reset}>
@@ -216,8 +250,8 @@ const HydrationTracker = () => {
         }}
       >
         {todayGlasses >= target 
-          ? `🎉 Goal reached!  ${streak} day streak!` 
-          : ` ${todayGlasses} glasses - Keep going!`}
+          ? `Goal reached! ${streak} day streak!` 
+          : `${todayGlasses} glasses - Keep going!`}
       </div>
 
       {/* Weekly History */}
@@ -245,7 +279,7 @@ const HydrationTracker = () => {
                   fontWeight: 'bold',
                   color: count >= target ? '#4ad7a8' : count > 0 ? '#ecc94b' : '#6c757d'
                 }}>
-                  {count > 0 ? count : '•'}
+                  {count > 0 ? count : '-'}
                 </div>
               </div>
             );
