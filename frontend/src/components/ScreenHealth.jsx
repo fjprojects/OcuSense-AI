@@ -42,7 +42,7 @@ const ScreenHealth = () => {
               <div className="glass-card p-3">
                 <p className="small-note mb-2">Current Risk:</p>
                 <p className="text-white mb-0">
-                  <strong id="strainLevel">🟢 Low</strong>
+                  <strong id="strainLevel"> Low</strong>
                 </p>
               </div>
             </div>

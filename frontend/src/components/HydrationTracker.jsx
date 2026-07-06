@@ -74,7 +74,7 @@ const HydrationTracker = () => {
 
   const addGlass = () => {
     if (todayGlasses >= target) {
-      showToast('🎉 Goal reached! You\'re fully hydrated today!', 'success');
+      showToast(' Goal reached! You\'re fully hydrated today!', 'success');
       return;
     }
 
@@ -93,16 +93,16 @@ const HydrationTracker = () => {
       const newStreak = streak + 1;
       setStreak(newStreak);
       
-      showToast(`🎉 Amazing! You reached your hydration goal! 🔥 ${newStreak} day streak!`, 'success');
+      showToast(` Amazing! You reached your hydration goal!  ${newStreak} day streak!`, 'success');
       
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('💧 Goal Reached!', {
-          body: `You drank 8 glasses of water today! 🔥 ${newStreak} day streak!`,
+        new Notification(' Goal Reached!', {
+          body: `You drank 8 glasses of water today!  ${newStreak} day streak!`,
           icon: '/icon.svg'
         });
       }
     } else {
-      showToast(`💧 ${newCount}/${target} glasses - Keep going!`, 'info');
+      showToast(` ${newCount}/${target} glasses - Keep going!`, 'info');
     }
   };
 
@@ -116,7 +116,7 @@ const HydrationTracker = () => {
     setHistory(newHistory);
     
     // Don't reset streak on manual reset
-    showToast('🔄 Today\'s hydration reset', 'info');
+    showToast(' Today\'s hydration reset', 'info');
   };
 
   const resetAll = () => {
@@ -127,7 +127,7 @@ const HydrationTracker = () => {
       setHistory({});
       setLastDrinkDate(null);
       localStorage.removeItem('hydrationState');
-      showToast('🔄 All hydration data reset', 'info');
+      showToast(' All hydration data reset', 'info');
     }
   };
 
@@ -192,12 +192,12 @@ const HydrationTracker = () => {
           <strong>{todayGlasses}</strong> / {target} glasses today
         </p>
         <p className="small-note mb-0">
-          {todayGlasses >= target ? '✅ Goal Met!' : `${target - todayGlasses} remaining`}
+          {todayGlasses >= target ? ' Goal Met!' : `${target - todayGlasses} remaining`}
         </p>
       </div>
 
       <div className="d-flex flex-wrap gap-2 mb-3">
-        <button className="btn btn-accent btn-sm" onClick={addGlass}>
+        <button className="btn btn-outline-light btn-sm" onClick={addGlass}>
           + Add Glass
         </button>
         <button className="btn btn-outline-light btn-sm" onClick={reset}>
@@ -216,8 +216,8 @@ const HydrationTracker = () => {
         }}
       >
         {todayGlasses >= target 
-          ? `🎉 Goal reached! 🔥 ${streak} day streak!` 
-          : `💧 ${todayGlasses} glasses - Keep going!`}
+          ? `🎉 Goal reached!  ${streak} day streak!` 
+          : ` ${todayGlasses} glasses - Keep going!`}
       </div>
 
       {/* Weekly History */}

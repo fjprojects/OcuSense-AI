@@ -74,9 +74,9 @@ const FocusTimer = () => {
   }, [seconds]);
 
   const showBreakAlert = () => {
-    showToast('👁️ 20-20-20 Break! Look 20 feet away for 20 seconds.', 'warning');
+    showToast(' 20-20-20 Break! Look 20 feet away for 20 seconds.', 'warning');
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('👁️ 20-20-20 Break!', {
+      new Notification(' 20-20-20 Break!', {
         body: 'Look 20 feet away for 20 seconds.',
         icon: '/icon.svg'
       });
@@ -108,12 +108,12 @@ const FocusTimer = () => {
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
-    showToast('▶️ Focus session started!', 'success');
+    showToast(' Focus session started!', 'success');
   };
 
   const handlePause = () => {
     setIsPaused(true);
-    showToast('⏸️ Focus session paused', 'info');
+    showToast(' Focus session paused', 'info');
   };
 
   const handleReset = () => {
@@ -121,7 +121,7 @@ const FocusTimer = () => {
     setIsPaused(false);
     setSeconds(0);
     setNextBreak(BREAK_INTERVAL);
-    showToast('🔄 Focus session reset', 'info');
+    showToast(' Focus session reset', 'info');
   };
 
   return (
@@ -158,11 +158,11 @@ const FocusTimer = () => {
       </div>
 
       <p className="small-note mb-3" style={{ color: reminderEnabled ? '#4ad7a8' : '#fc8181' }}>
-        {reminderEnabled ? '✅ Reminder Enabled' : '❌ Reminder Disabled'}
+        {reminderEnabled ? ' Reminder Enabled' : ' Reminder Disabled'}
       </p>
 
       <div className="d-flex flex-wrap gap-2">
-        <button className="btn btn-accent btn-sm" onClick={handleStart} disabled={isRunning}>
+        <button className="btn btn-outline-light btn-sm" onClick={handleStart} disabled={isRunning}>
           Start
         </button>
         <button className="btn btn-warning btn-sm" onClick={handlePause} disabled={!isRunning || isPaused}>

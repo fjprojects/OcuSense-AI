@@ -21,19 +21,19 @@ const MedicineReminder = () => {
       active: true 
     }]);
     setNewMedicine({ name: '', dosage: '', frequency: '', time: '' });
-    showToast('✅ Medicine added successfully!', 'success');
+    showToast(' Medicine added successfully!', 'success');
   };
 
   const toggleMedicine = (id) => {
     setMedicines(medicines.map(med => 
       med.id === id ? { ...med, active: !med.active } : med
     ));
-    showToast('🔄 Medicine status updated', 'info');
+    showToast(' Medicine status updated', 'info');
   };
 
   const deleteMedicine = (id) => {
     setMedicines(medicines.filter(med => med.id !== id));
-    showToast('🗑️ Medicine removed', 'error');
+    showToast(' Medicine removed', 'error');
   };
 
   return (

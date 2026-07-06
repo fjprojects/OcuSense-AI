@@ -47,13 +47,13 @@ const Contact = () => {
       });
 
       if (response.ok) {
-        showToast('✅ Message sent successfully!', 'success');
+        showToast(' Message sent successfully!', 'success');
         setFormData({ name: '', email: '', message: '' });
       } else {
-        showToast('❌ Failed to send message. Please try again.', 'error');
+        showToast(' Failed to send message. Please try again.', 'error');
       }
     } catch (error) {
-      showToast('❌ Network error. Please check your connection.', 'error');
+      showToast(' Network error. Please check your connection.', 'error');
     } finally {
       setIsSubmitting(false);
     }
