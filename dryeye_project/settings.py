@@ -28,9 +28,9 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -62,7 +62,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'frontend', 'build'),  # <-- ADD THIS FOR REACT
+            os.path.join(BASE_DIR, 'frontend', 'build'),  # React build folder
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -81,12 +81,24 @@ WSGI_APPLICATION = 'dryeye_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600
-    )
-}
+# Use PostgreSQL if DATABASE_URL is set, otherwise SQLite
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+    print("✅ Using PostgreSQL database")
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    print("📁 Using SQLite database")
 
 
 # Password validation
@@ -127,24 +139,20 @@ STATIC_URL = '/static/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# ADD React static files here
+# Static files directories
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
-    os.path.join(BASE_DIR, 'frontend', 'build', 'static'),  # <-- ADD THIS FOR REACT
 ]
+
+# Add React static files only if the build folder exists
+react_static_path = os.path.join(BASE_DIR, 'frontend', 'build', 'static')
+if os.path.exists(react_static_path):
+    STATICFILES_DIRS.append(react_static_path)
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Email settings (for contact form)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For testing
-# For production, use:
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your-email@gmail.com'
-# EMAIL_HOST_PASSWORD = 'your-app-password'
-# DEFAULT_FROM_EMAIL = 'your-email@gmail.com'
 
 # Logging
 LOGGING = {
