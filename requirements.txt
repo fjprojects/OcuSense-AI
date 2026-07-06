@@ -13,3 +13,4 @@ tzdata==2025.3
 virtualenv==20.36.1
 waitress==3.0.2
 whitenoise==6.12.0
+echo psycopg2-binary==2.9.9 >> requirements.txt
