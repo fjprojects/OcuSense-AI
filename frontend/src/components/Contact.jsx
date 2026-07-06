@@ -21,13 +21,11 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate
     if (!formData.name || !formData.email || !formData.message) {
       showToast('Please fill all fields', 'error');
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       showToast('Please enter a valid email address', 'error');
@@ -37,7 +35,6 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      // Send to your Django API
       const response = await fetch('/api/contact/', {
         method: 'POST',
         headers: {
@@ -47,13 +44,13 @@ const Contact = () => {
       });
 
       if (response.ok) {
-        showToast(' Message sent successfully!', 'success');
+        showToast('Message sent successfully!', 'success');
         setFormData({ name: '', email: '', message: '' });
       } else {
-        showToast(' Failed to send message. Please try again.', 'error');
+        showToast('Failed to send message. Please try again.', 'error');
       }
     } catch (error) {
-      showToast(' Network error. Please check your connection.', 'error');
+      showToast('Network error. Please check your connection.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +149,7 @@ const Contact = () => {
           
           <a
             className="btn btn-outline-light me-2 mb-2"
-            href="#"
+            href="https://github.com/francisjob"  // Fixed: removed #
             target="_blank"
             rel="noopener noreferrer"
           >

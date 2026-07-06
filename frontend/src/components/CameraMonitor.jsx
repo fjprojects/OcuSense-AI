@@ -24,7 +24,6 @@ const CameraMonitor = () => {
   
   // Face & head
   const [faceDetected, setFaceDetected] = useState(false);
-  const [headTilt, setHeadTilt] = useState({ x: 0, y: 0, z: 0 });
   
   // Session stats
   const [sessionTime, setSessionTime] = useState(0);
@@ -39,33 +38,139 @@ const CameraMonitor = () => {
   const sessionIntervalRef = useRef(null);
   const { showToast } = useToast();
   
-  // ==================== BLINK DETECTION REFS (FIXED) ====================
+  // ==================== BLINK DETECTION REFS ====================
   const blinkCountRef = useRef(0);
   const blinkRateCountRef = useRef(0);
   const minuteStartRef = useRef(Date.now());
-  const leftEyeOpenRef = useRef(true);
-  const rightEyeOpenRef = useRef(true);
   const leftEyeClosedFramesRef = useRef(0);
   const rightEyeClosedFramesRef = useRef(0);
   const BLINK_THRESHOLD = 2;
   const EAR_THRESHOLD = 0.18;
-  
-  // ==================== BLINK RATE CALCULATION (FIXED) ====================
+
+  // ==================== STOP CAMERA FUNCTION (DEFINED EARLY) ====================
+  const stopCamera = useCallback(() => {
+    if (cameraRef.current) {
+      try { cameraRef.current.stop(); } catch (e) {}
+      cameraRef.current = null;
+    }
+
+    faceMeshRef.current = null;
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+
+    setIsCameraActive(false);
+    setStatus('Stopped');
+    setSessionStart(null);
+    setSessionTime(0);
+    setFaceDetected(false);
+    setBlinkRate(0);
+    
+    showToast('Camera stopped', 'info');
+  }, [showToast]);
+
+  // ==================== START CAMERA FUNCTION (DEFINED EARLY) ====================
+  const startCamera = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setStatus('Starting...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 }, 
+          facingMode: 'user' 
+        },
+        audio: false
+      });
+
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      
+      setIsCameraActive(true);
+      setStatus('Running');
+      setSessionStart(Date.now());
+      
+      // Reset all counters
+      blinkCountRef.current = 0;
+      blinkRateCountRef.current = 0;
+      minuteStartRef.current = Date.now();
+      leftEyeClosedFramesRef.current = 0;
+      rightEyeClosedFramesRef.current = 0;
+      setBlinkCount(0);
+      setBlinkRate(0);
+      
+      // Initialize Face Mesh
+      try {
+        faceMeshRef.current = new faceMesh.FaceMesh({
+          locateFile: (file) => 
+            `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+
+        faceMeshRef.current.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+
+        faceMeshRef.current.onResults(onResults);
+        console.log('Face Mesh initialized');
+      } catch (error) {
+        console.error('Face Mesh initialization error:', error);
+        showToast('Face detection not available', 'error');
+      }
+      
+      // Start camera
+      if (videoRef.current && faceMeshRef.current) {
+        cameraRef.current = new cameraUtils.Camera(videoRef.current, {
+          onFrame: async () => {
+            try {
+              await faceMeshRef.current.send({image: videoRef.current});
+            } catch (err) {
+              // Silent fail
+            }
+          },
+          width: 640,
+          height: 480
+        });
+        await cameraRef.current.start();
+      }
+      
+      showToast('Camera started successfully!', 'success');
+    } catch (error) {
+      console.error('Camera error:', error);
+      handleError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  // ==================== BLINK RATE CALCULATION ====================
   const updateBlinkRate = useCallback(() => {
     const now = Date.now();
     const elapsedSeconds = (now - minuteStartRef.current) / 1000;
     
-    // Update blink rate every second
     if (elapsedSeconds >= 1) {
-      // Calculate rate: blinks per minute
       const rate = Math.round((blinkRateCountRef.current / elapsedSeconds) * 60);
       setBlinkRate(rate);
       
-      // Show warnings based on blink rate
       if (rate < 8 && rate > 0) {
-        showToast(' Low blink rate! Remember to blink more often.', 'warning');
+        showToast('Low blink rate! Remember to blink more often.', 'warning');
       } else if (rate > 25) {
-        showToast(' High blink rate! You might be tired.', 'warning');
+        showToast('High blink rate! You might be tired.', 'warning');
       }
     }
   }, [showToast]);
@@ -84,18 +189,15 @@ const CameraMonitor = () => {
       stopCamera();
       clearInterval(sessionIntervalRef.current);
     };
-  }, []);
+  }, [stopCamera]);
 
   // ==================== SESSION TIMER ====================
   useEffect(() => {
     if (isCameraActive && sessionStart) {
       sessionIntervalRef.current = setInterval(() => {
         setSessionTime(Math.floor((Date.now() - sessionStart) / 1000));
-        
-        // Update blink rate every second
         updateBlinkRate();
         
-        // Reset counter every minute
         const elapsedSeconds = (Date.now() - minuteStartRef.current) / 1000;
         if (elapsedSeconds >= 60) {
           resetBlinkRateCounter();
@@ -109,7 +211,7 @@ const CameraMonitor = () => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && isCameraActive) {
-        console.log(' Tab visible, checking camera...');
+        console.log('Tab visible, checking camera...');
         if (streamRef.current) {
           const tracks = streamRef.current.getTracks();
           const allLive = tracks.every(t => t.readyState === 'live');
@@ -123,7 +225,7 @@ const CameraMonitor = () => {
           await startCamera();
         }
       } else if (document.visibilityState === 'hidden' && isCameraActive) {
-        console.log(' Tab in background');
+        console.log('Tab in background');
         setStatus('Background (paused)');
       }
     };
@@ -132,31 +234,7 @@ const CameraMonitor = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isCameraActive]);
-
-  // ==================== FACE MESH INITIALIZATION ====================
-  const initializeFaceMesh = useCallback(() => {
-    try {
-      faceMeshRef.current = new faceMesh.FaceMesh({
-        locateFile: (file) => 
-          `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-      });
-
-      faceMeshRef.current.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-
-      faceMeshRef.current.onResults(onResults);
-      console.log(' Face Mesh initialized');
-      return true;
-    } catch (error) {
-      console.error(' Face Mesh initialization error:', error);
-      return false;
-    }
-  }, []);
+  }, [isCameraActive, startCamera, stopCamera]);
 
   // ==================== EYE ASPECT RATIO CALCULATION ====================
   const calculateEAR = (upper, lower, inner, outer) => {
@@ -279,35 +357,24 @@ const CameraMonitor = () => {
     
     const leftEyeOpen = leftEAR > EAR_THRESHOLD;
     const rightEyeOpen = rightEAR > EAR_THRESHOLD;
-    const isBlinking = !leftEyeOpen && !rightEyeOpen;
 
-    // Detect blinks - FIXED: Proper blink counting
+    // Detect blinks
     if (!leftEyeOpen && !rightEyeOpen) {
-      // Eyes are closed
       leftEyeClosedFramesRef.current++;
       rightEyeClosedFramesRef.current++;
     } else if (leftEyeOpen && rightEyeOpen) {
-      // Eyes are open - check if they were closed before
       if (leftEyeClosedFramesRef.current >= BLINK_THRESHOLD || 
           rightEyeClosedFramesRef.current >= BLINK_THRESHOLD) {
-        // Count a blink
         blinkCountRef.current++;
         blinkRateCountRef.current++;
         setBlinkCount(blinkCountRef.current);
-        
-        console.log(` Blink detected! Total: ${blinkCountRef.current}, Rate count: ${blinkRateCountRef.current}`);
       }
-      // Reset closed frames
       leftEyeClosedFramesRef.current = 0;
       rightEyeClosedFramesRef.current = 0;
     }
 
-    leftEyeOpenRef.current = leftEyeOpen;
-    rightEyeOpenRef.current = rightEyeOpen;
-
     // 3. Head pose
     const headPose = calculateHeadPose(landmarks);
-    setHeadTilt(headPose);
 
     // 4. Posture detection
     const postureResult = detectPosture(headPose, distanceCm);
@@ -315,99 +382,7 @@ const CameraMonitor = () => {
     setPostureScore(postureResult.score);
   };
 
-  // ==================== CAMERA CONTROLS ====================
-  const startCamera = async () => {
-    try {
-      setIsLoading(true);
-      setStatus('Starting...');
-      
-      if (!initializeFaceMesh()) {
-        throw new Error('Face Mesh initialization failed');
-      }
-      
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          width: { ideal: 640 }, 
-          height: { ideal: 480 }, 
-          facingMode: 'user' 
-        },
-        audio: false
-      });
-
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      
-      setIsCameraActive(true);
-      setStatus('Running');
-      setSessionStart(Date.now());
-      
-      // Reset all counters
-      blinkCountRef.current = 0;
-      blinkRateCountRef.current = 0;
-      minuteStartRef.current = Date.now();
-      leftEyeClosedFramesRef.current = 0;
-      rightEyeClosedFramesRef.current = 0;
-      setBlinkCount(0);
-      setBlinkRate(0);
-      
-      // Start camera
-      if (videoRef.current && faceMeshRef.current) {
-        cameraRef.current = new cameraUtils.Camera(videoRef.current, {
-          onFrame: async () => {
-            try {
-              await faceMeshRef.current.send({image: videoRef.current});
-            } catch (err) {
-              // Silent fail
-            }
-          },
-          width: 640,
-          height: 480
-        });
-        await cameraRef.current.start();
-      }
-      
-      showToast(' Camera started successfully!', 'success');
-    } catch (error) {
-      console.error('Camera error:', error);
-      handleError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (cameraRef.current) {
-      try { cameraRef.current.stop(); } catch (e) {}
-      cameraRef.current = null;
-    }
-
-    faceMeshRef.current = null;
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
-
-    setIsCameraActive(false);
-    setStatus('Stopped');
-    setSessionStart(null);
-    setSessionTime(0);
-    setFaceDetected(false);
-    setBlinkRate(0);
-    
-    showToast('📷 Camera stopped', 'info');
-  };
-
+  // ==================== HANDLE ERROR ====================
   const handleError = (error) => {
     setStatus('Error');
     setIsCameraActive(false);
@@ -572,7 +547,7 @@ const CameraMonitor = () => {
             
             <div className="col-md-4">
               <div className="glass-card p-3">
-                <p className="small-note mb-1"> Blink Count</p>
+                <p className="small-note mb-1">Blink Count</p>
                 <strong>{blinkCount}</strong>
               </div>
             </div>
@@ -588,14 +563,14 @@ const CameraMonitor = () => {
             
             <div className="col-md-4">
               <div className="glass-card p-3">
-                <p className="small-note mb-1"> Face Distance</p>
+                <p className="small-note mb-1">Face Distance</p>
                 <strong style={{ color: distanceColor }}>{distance}</strong>
               </div>
             </div>
             
             <div className="col-md-4">
               <div className="glass-card p-3">
-                <p className="small-note mb-1"> Posture</p>
+                <p className="small-note mb-1">Posture</p>
                 <strong>
                   {posture.charAt(0).toUpperCase() + posture.slice(1)} ({postureScore}%)
                 </strong>
@@ -607,7 +582,7 @@ const CameraMonitor = () => {
 
       <div className="col-lg-4">
         <div className="glass-card p-4 mb-4">
-          <h5 className="mb-3"> Health Summary</h5>
+          <h5 className="mb-3">Health Summary</h5>
           
           <div className="mb-3">
             <div className="d-flex justify-content-between">
@@ -642,42 +617,42 @@ const CameraMonitor = () => {
         </div>
 
         <div className="glass-card p-4">
-          <h5 className="mb-3"> Real-time Tips</h5>
+          <h5 className="mb-3">Real-time Tips</h5>
           <ul className="list-unstyled small-note mb-0">
             {blinkRate < 12 && blinkRate > 0 && (
               <li className="mb-2">
                 <i className="fas fa-circle text-accent me-2" style={{ color: '#ecc94b' }}></i>
-                 Try to blink more often (target: 12-25 blinks/min)
+                Try to blink more often (target: 12-25 blinks/min)
               </li>
             )}
             {blinkRate > 25 && (
               <li className="mb-2">
                 <i className="fas fa-circle text-accent me-2" style={{ color: '#ecc94b' }}></i>
-                 High blink rate! You might be tired. Take a break.
+                High blink rate! You might be tired. Take a break.
               </li>
             )}
             {blinkRate >= 12 && blinkRate <= 25 && (
               <li className="mb-2">
                 <i className="fas fa-circle text-accent me-2" style={{ color: '#4ad7a8' }}></i>
-                 Great blink rate! Keep it up!
+                Great blink rate! Keep it up!
               </li>
             )}
             {distance.includes('30') && (
               <li className="mb-2">
                 <i className="fas fa-circle text-accent me-2" style={{ color: '#fc8181' }}></i>
-                 Move back from the screen (ideal: 40-60 cm)
+                Move back from the screen (ideal: 40-60 cm)
               </li>
             )}
             {posture === 'poor' && (
               <li className="mb-2">
                 <i className="fas fa-circle text-accent me-2" style={{ color: '#ecc94b' }}></i>
-                 Straighten your posture for better ergonomics
+                Straighten your posture for better ergonomics
               </li>
             )}
             {posture === 'good' && blinkRate >= 12 && blinkRate <= 25 && (
               <li className="mb-2">
                 <i className="fas fa-circle text-accent me-2" style={{ color: '#4ad7a8' }}></i>
-                 All metrics are optimal! Great job!
+                All metrics are optimal! Great job!
               </li>
             )}
           </ul>
