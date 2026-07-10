@@ -5,6 +5,9 @@
   "proxy": "http://localhost:8000",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.0",
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/face_mesh": "^0.4.1633559619",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

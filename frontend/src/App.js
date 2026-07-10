@@ -3,7 +3,6 @@ import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import ScreenHealth from './components/ScreenHealth';
-import CameraMonitor from './components/CameraMonitor';
 import MedicineReminder from './components/MedicineReminder';
 import About from './components/About';
 import Contact from './components/Contact';
@@ -11,6 +10,7 @@ import { ToastProvider } from './components/Toast';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import CameraMonitor from './components/CameraMonitor';
 
 function App() {
   useEffect(() => {

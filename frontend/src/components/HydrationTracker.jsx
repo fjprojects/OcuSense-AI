@@ -2,64 +2,106 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from './Toast';
 
 const HydrationTracker = () => {
-  const [glasses, setGlasses] = useState(0);
   const [todayGlasses, setTodayGlasses] = useState(0);
   const [streak, setStreak] = useState(0);
   const [lastDrinkDate, setLastDrinkDate] = useState(null);
+  const [lastCompletedDate, setLastCompletedDate] = useState(null);
   const [history, setHistory] = useState({});
+  const [today, setToday] = useState(new Date().toDateString());
   const target = 8;
   const { showToast } = useToast();
 
-  // Load state from localStorage
+  // Load state from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('hydrationState');
     if (saved) {
       const state = JSON.parse(saved);
       
-      // Check if last drink was today
-      const today = new Date().toDateString();
-      const lastDate = state.lastDrinkDate ? new Date(state.lastDrinkDate).toDateString() : null;
+      const currentDate = new Date().toDateString();
       
-      if (lastDate === today) {
-        // Today's glasses
-        const todayHistory = state.history && state.history[today] ? state.history[today] : 0;
-        setTodayGlasses(todayHistory);
-        setGlasses(todayHistory);
-      } else {
-        // Reset for new day
-        setTodayGlasses(0);
-        setGlasses(0);
+      setHistory(state.history || {});
+      setLastDrinkDate(state.lastDrinkDate || null);
+      setLastCompletedDate(state.lastCompletedDate || null);
+      
+      // Always load today's count from history
+      const todayCount = state.history && state.history[currentDate] ? state.history[currentDate] : 0;
+      setTodayGlasses(todayCount);
+      
+      // Calculate streak based on lastCompletedDate
+      if (state.lastCompletedDate) {
+        const lastCompleted = new Date(state.lastCompletedDate).toDateString();
         
-        // Check streak
-        if (lastDate) {
+        if (lastCompleted === currentDate) {
+          // Completed today
+          setStreak(state.streak || 0);
+        } else {
+          // Check if yesterday was completed
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toDateString();
           
-          if (state.history && state.history[yesterdayStr] && state.history[yesterdayStr] >= target) {
-            // Streak continues
+          if (lastCompleted === yesterdayStr) {
+            // Yesterday completed, keep streak
             setStreak(state.streak || 0);
           } else {
             // Streak broken
             setStreak(0);
           }
         }
-      }
-      
-      setLastDrinkDate(state.lastDrinkDate || null);
-      setHistory(state.history || {});
-      
-      // Update glasses to show today's count
-      if (state.history && state.history[today]) {
-        setGlasses(state.history[today]);
-        setTodayGlasses(state.history[today]);
+      } else {
+        setStreak(0);
       }
     }
   }, []);
 
-  // Save state
+  // Update today's date and check for day changes
   useEffect(() => {
-    const today = new Date().toDateString();
+    const updateDate = () => {
+      const newToday = new Date().toDateString();
+      
+      if (newToday !== today) {
+        console.log("📅 Date changed:", today, "→", newToday);
+        
+        // Check if yesterday was completed
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toDateString();
+        
+        setToday(newToday);
+        
+        // Reset today's glasses
+        const todayCount = history[newToday] || 0;
+        setTodayGlasses(todayCount);
+        
+        // Update streak
+        if (lastCompletedDate) {
+          const lastCompleted = new Date(lastCompletedDate).toDateString();
+          
+          if (lastCompleted === yesterdayStr || lastCompleted === newToday) {
+            // Streak continues
+            console.log("✅ Streak continues:", streak);
+          } else {
+            // Streak broken
+            console.log("❌ Streak reset");
+            setStreak(0);
+          }
+        }
+      }
+    };
+    
+    // Update immediately
+    updateDate();
+    
+    // Then check every second
+    const timer = setInterval(updateDate, 1000);
+    
+    return () => clearInterval(timer);
+  }, [today, history, lastCompletedDate, streak]);
+
+  // Save state to localStorage
+  useEffect(() => {
+    if (!today) return;
+    
     const newHistory = { ...history };
     newHistory[today] = todayGlasses;
     
@@ -67,10 +109,11 @@ const HydrationTracker = () => {
       glasses: todayGlasses,
       history: newHistory,
       streak: streak,
-      lastDrinkDate: lastDrinkDate
+      lastDrinkDate: lastDrinkDate,
+      lastCompletedDate: lastCompletedDate
     };
     localStorage.setItem('hydrationState', JSON.stringify(state));
-  }, [todayGlasses, streak, lastDrinkDate, history]);
+  }, [todayGlasses, streak, lastDrinkDate, lastCompletedDate, today]);
 
   const addGlass = () => {
     if (todayGlasses >= target) {
@@ -79,19 +122,20 @@ const HydrationTracker = () => {
     }
 
     const newCount = todayGlasses + 1;
+    const now = new Date().toISOString();
     setTodayGlasses(newCount);
-    setGlasses(newCount);
-    setLastDrinkDate(new Date().toISOString());
+    setLastDrinkDate(now);
     
-    const today = new Date().toDateString();
     const newHistory = { ...history };
     newHistory[today] = newCount;
     setHistory(newHistory);
 
     if (newCount === target) {
-      // Goal reached! Update streak
       const newStreak = streak + 1;
+      const todayDate = new Date().toDateString();
+      
       setStreak(newStreak);
+      setLastCompletedDate(todayDate);
       
       showToast(`🎉 Amazing! You reached your hydration goal! 🔥 ${newStreak} day streak!`, 'success');
       
@@ -107,25 +151,22 @@ const HydrationTracker = () => {
   };
 
   const reset = () => {
-    const today = new Date().toDateString();
     setTodayGlasses(0);
-    setGlasses(0);
     
     const newHistory = { ...history };
     newHistory[today] = 0;
     setHistory(newHistory);
     
-    // Don't reset streak on manual reset
     showToast('🔄 Today\'s hydration reset', 'info');
   };
 
   const resetAll = () => {
     if (window.confirm('Reset all hydration data including streak?')) {
-      setGlasses(0);
       setTodayGlasses(0);
       setStreak(0);
       setHistory({});
       setLastDrinkDate(null);
+      setLastCompletedDate(null);
       localStorage.removeItem('hydrationState');
       showToast('🔄 All hydration data reset', 'info');
     }
@@ -146,7 +187,43 @@ const HydrationTracker = () => {
     return '💧';
   };
 
+  const formatToday = () => {
+    const date = new Date(today);
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  // Generate week data based on today state
+  const getWeekData = () => {
+    const todayDate = new Date(today);
+    const weekData = [];
+    
+    // Get the start of the week (Sunday)
+    const startOfWeek = new Date(todayDate);
+    startOfWeek.setDate(todayDate.getDate() - todayDate.getDay());
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const dateStr = date.toDateString();
+      const count = history[dateStr] || 0;
+      const isToday = dateStr === today;
+      
+      weekData.push({
+        day: dayNames[i],
+        dateStr,
+        count,
+        isToday
+      });
+    }
+    
+    return weekData;
+  };
+
   const percentage = Math.min((todayGlasses / target) * 100, 100);
+  const weekData = getWeekData();
 
   return (
     <div className="glass-card p-4 h-100">
@@ -154,6 +231,20 @@ const HydrationTracker = () => {
         <i className="fas fa-droplet text-accent me-2"></i>
         Hydration Reminder
       </h5>
+
+      {/* Today's Date Display */}
+      <div className="mb-3 p-2" style={{ 
+        background: 'rgba(74,215,168,0.1)', 
+        borderRadius: '8px',
+        border: '1px solid rgba(74,215,168,0.2)'
+      }}>
+        <div className="d-flex justify-content-between align-items-center">
+          <span className="small-note">📅 Today</span>
+          <span style={{ color: '#4ad7a8', fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {formatToday()}
+          </span>
+        </div>
+      </div>
 
       <p className="small-note mb-3">
         Aim for 8 glasses of water while working at your screen.
@@ -197,7 +288,7 @@ const HydrationTracker = () => {
       </div>
 
       <div className="d-flex flex-wrap gap-2 mb-3">
-        <button className="btn btn-accent btn-sm" onClick={addGlass}>
+        <button className="btn btn-outline-light btn-sm" onClick={addGlass}>
           + Add Glass
         </button>
         <button className="btn btn-outline-light btn-sm" onClick={reset}>
@@ -220,36 +311,36 @@ const HydrationTracker = () => {
           : `💧 ${todayGlasses} glasses - Keep going!`}
       </div>
 
-      {/* Weekly History */}
+      {/* Weekly History - Now uses today state */}
       <div className="mt-3 pt-3 border-top border-secondary">
-        <p className="small-note mb-2">This Week</p>
+        <p className="small-note mb-2">
+          This Week ({new Date(weekData[0].dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(weekData[6].dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+        </p>
         <div className="d-flex justify-content-between">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (6 - index));
-            const dateStr = date.toDateString();
-            const count = history[dateStr] || 0;
-            const isToday = dateStr === new Date().toDateString();
-            
-            return (
-              <div key={index} className="text-center" style={{ flex: 1 }}>
-                <div style={{ 
-                  fontSize: '10px', 
-                  color: isToday ? '#4ad7a8' : 'rgba(255,255,255,0.5)',
-                  fontWeight: isToday ? 'bold' : 'normal'
-                }}>
-                  {day}
-                </div>
-                <div style={{ 
-                  fontSize: '16px', 
-                  fontWeight: 'bold',
-                  color: count >= target ? '#4ad7a8' : count > 0 ? '#ecc94b' : '#6c757d'
-                }}>
-                  {count > 0 ? count : '•'}
-                </div>
+          {weekData.map((day, index) => (
+            <div key={index} className="text-center" style={{ flex: 1 }}>
+              <div style={{ 
+                fontSize: '10px', 
+                color: day.isToday ? '#4ad7a8' : 'rgba(255,255,255,0.5)',
+                fontWeight: day.isToday ? 'bold' : 'normal'
+              }}>
+                {day.day}
               </div>
-            );
-          })}
+              <div style={{ 
+                fontSize: '14px',
+                fontWeight: 'bold',
+                color: day.count >= target ? '#4ad7a8' : day.count > 0 ? '#ecc94b' : '#6c757d'
+              }}>
+                {day.count > 0 ? day.count : '•'}
+              </div>
+              <div style={{
+                fontSize: '8px',
+                color: day.isToday ? '#4ad7a8' : 'rgba(255,255,255,0.3)'
+              }}>
+                {new Date(day.dateStr).getDate()}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
