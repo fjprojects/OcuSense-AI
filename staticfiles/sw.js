@@ -22,16 +22,12 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') {
-    return;
-  }
+  if (event.request.method !== 'GET') return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .then(networkResponse => {
-          return networkResponse;
-        })
+        .then(networkResponse => networkResponse)
         .catch(() => caches.match('/'))
     );
     return;
@@ -39,9 +35,7 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
 
       return fetch(event.request)
         .then(networkResponse => {
@@ -56,5 +50,29 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => cachedResponse);
     })
+  );
+});
+
+// Push notifications
+self.addEventListener('push', event => {
+  const data = event.data ? event.data.json() : {};
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title || '👁️ Ocusense Arena',
+      {
+        body: data.body || 'Time to take care of your eyes!',
+        icon: '/static/icon.svg',
+        badge: '/static/icon.svg',
+        vibrate: [200, 100, 200],
+        data: { url: data.url || '/' }
+      }
+    )
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow(event.notification.data.url || '/')
   );
 });

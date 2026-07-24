@@ -142,3 +142,265 @@
     padding: 1.5rem 0 2rem;
   }
 }
+
+/* .hero-logo {
+  width: 1000px;
+  height:1000px;
+  object-fit: contain;
+  border-radius: 20px;
+  display: block;
+  margin-bottom: 1rem;
+} */
+.hero-logo {
+  width: 450px;
+  height: 450px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 30px auto;
+}
+@media (max-width: 991px) {
+  .hero-logo {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (max-width: 768px) {
+  .hero-logo {
+    width: 280px;
+    height: 280px;
+  }
+}
+.home-logo-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.home-logo {
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 18px;
+}
+/* Add New Medicine section */
+.medicine-form-card {
+  background: linear-gradient(
+    135deg,
+    rgba(18, 34, 52, 0.96),
+    rgba(12, 24, 38, 0.96)
+  );
+  border: 1px solid rgba(74, 215, 168, 0.28);
+}
+
+/* Medicine input fields */
+.medicine-input {
+  background-color: rgba(255, 255, 255, 0.09) !important;
+  border: 1px solid rgba(160, 190, 210, 0.7) !important;
+  color: #ffffff !important;
+  height: 42px;
+}
+
+.medicine-input::placeholder {
+  color: #a9bac8 !important;
+  opacity: 1;
+}
+
+.medicine-input:focus {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: #4ad7a8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(74, 215, 168, 0.15) !important;
+}
+
+/* Time input icon */
+.medicine-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* Add button */
+.medicine-add-btn {
+  height: 42px;
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+  border: none;
+  color: white;
+  font-size: 18px;
+  border-radius: 7px;
+}
+
+.medicine-add-btn:hover {
+  background: linear-gradient(135deg, #16a34a, #0d9488);
+  transform: translateY(-1px);
+}
+.medicine-form-card {
+  background: linear-gradient(
+    135deg,
+    rgba(18, 34, 52, 0.96),
+    rgba(12, 24, 38, 0.96)
+  );
+  border: 1px solid rgba(74, 215, 168, 0.28);
+}
+
+.medicine-input {
+  height: 42px;
+  background-color: rgba(255, 255, 255, 0.09) !important;
+  border: 1px solid rgba(160, 190, 210, 0.7) !important;
+  color: #ffffff !important;
+}
+
+.medicine-input::placeholder {
+  color: #a9bac8 !important;
+  opacity: 1;
+}
+
+.medicine-input:focus {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: #4ad7a8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(74, 215, 168, 0.15) !important;
+}
+
+.medicine-input[type="time"] {
+  color-scheme: dark;
+}
+
+.medicine-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.medicine-add-btn {
+  height: 42px;
+  padding: 0;
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  border-radius: 7px;
+}
+
+.medicine-add-btn:hover {
+  background: linear-gradient(135deg, #16a34a, #0d9488);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+/* Contact form card */
+.contact-form-card {
+  background: linear-gradient(
+    135deg,
+    rgba(18, 34, 52, 0.96),
+    rgba(12, 24, 38, 0.96)
+  );
+  border: 1px solid rgba(74, 215, 168, 0.25);
+}
+
+/* Contact labels */
+.contact-label {
+  color: #d8e9f2;
+  font-weight: 500;
+}
+
+/* Contact inputs */
+.contact-input {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(160, 190, 210, 0.65) !important;
+  color: #ffffff !important;
+  min-height: 46px;
+}
+
+.contact-input::placeholder {
+  color: #9fb2c1 !important;
+  opacity: 1;
+}
+
+.contact-input:focus {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: #4ad7a8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(74, 215, 168, 0.15) !important;
+}
+
+.contact-input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.contact-textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+/* Send button */
+.contact-submit-btn {
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+  border: none;
+  color: #ffffff;
+  min-width: 160px;
+}
+
+.contact-submit-btn:hover {
+  background: linear-gradient(135deg, #16a34a, #0d9488);
+  color: #ffffff;
+}
+
+.contact-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Help section */
+.contact-help-card {
+  background: linear-gradient(
+    145deg,
+    rgba(15, 25, 40, 0.94),
+    rgba(10, 22, 35, 0.94)
+  );
+}
+
+.contact-detail {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.contact-detail-title {
+  color: #e6f8ff;
+  font-weight: 600;
+}
+
+/* Social buttons */
+.contact-social-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(74, 215, 168, 0.35);
+  color: #e6f8ff;
+}
+
+.contact-social-btn:hover {
+  background: rgba(74, 215, 168, 0.15);
+  border-color: #4ad7a8;
+  color: #ffffff;
+}
+.contact-social-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(74, 215, 168, 0.45) !important;
+  color: #e6f8ff !important;
+  padding: 10px 18px;
+}
+
+.contact-social-btn i {
+  color: #4ad7a8 !important;
+}
+
+.contact-social-btn:hover {
+  background: rgba(74, 215, 168, 0.18) !important;
+  border-color: #4ad7a8 !important;
+  color: #ffffff !important;
+}
+
+.contact-social-btn:hover i {
+  color: #ffffff !important;
+}

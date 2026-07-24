@@ -1,23 +1,33 @@
 from datetime import datetime, timedelta
 import json
-import os
 import logging
+import os
 
 from django.conf import settings
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt  # <-- ADD THIS IMPORT
 from django.utils import timezone
-from .models import MedicineReminder
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from rest_framework import generics
+
+from .models import ContactMessage, MedicineReminder
+from .serializers import ContactMessageSerializer
+
 
 logger = logging.getLogger(__name__)
 
 
+# =========================================================
+# NORMAL DJANGO PAGES
+# =========================================================
+
 def home(request):
     message = ""
+
     if request.method == "POST":
         screen_time = request.POST.get("time", "")
+
         try:
             screen_time_value = int(screen_time)
         except ValueError:
@@ -25,56 +35,138 @@ def home(request):
 
         if screen_time_value is None:
             message = "Please enter a valid number of minutes."
+
         elif screen_time_value >= 300:
-            message = "⚠️ Warning: More than 5 hours of screen use. Take a long break and rest your eyes."
+            message = (
+                "Warning: More than 5 hours of screen use. "
+                "Take a long break and rest your eyes."
+            )
+
         elif screen_time_value > 40:
-            message = "Your eyes need rest! Follow the 20-20-20 rule."
+            message = (
+                "Your eyes need rest! Follow the 20-20-20 rule."
+            )
+
         else:
             message = "Screen time is safe."
 
-    return render(request, "home.html", {"message": message, "active_page": "home"})
+    return render(
+        request,
+        "home.html",
+        {
+            "message": message,
+            "active_page": "home",
+        },
+    )
 
 
 def screen_health(request):
-    return render(request, "screen_health.html", {"active_page": "screen_health"})
+    return render(
+        request,
+        "screen_health.html",
+        {
+            "active_page": "screen_health",
+        },
+    )
 
 
 def camera_monitoring(request):
-    return render(request, "camera_monitoring.html", {"active_page": "camera_monitoring"})
+    return render(
+        request,
+        "camera_monitoring.html",
+        {
+            "active_page": "camera_monitoring",
+        },
+    )
 
 
 def medicine_reminder(request):
-    reminders = MedicineReminder.objects.filter(active=True)
-    return render(request, "medicine_reminder.html", {"reminders": reminders, "active_page": "medicine_reminder"})
+    reminders = MedicineReminder.objects.filter(
+        active=True
+    )
+
+    return render(
+        request,
+        "medicine_reminder.html",
+        {
+            "reminders": reminders,
+            "active_page": "medicine_reminder",
+        },
+    )
 
 
 def about(request):
-    return render(request, "about.html", {"active_page": "about"})
+    return render(
+        request,
+        "about.html",
+        {
+            "active_page": "about",
+        },
+    )
 
 
 def contact(request):
-    return render(request, "contact.html", {"active_page": "contact"})
+    return render(
+        request,
+        "contact.html",
+        {
+            "active_page": "contact",
+        },
+    )
 
+
+# =========================================================
+# SERVICE WORKER
+# =========================================================
 
 def service_worker(request):
-    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
-    if os.path.exists(sw_path):
-        return FileResponse(open(sw_path, 'rb'), content_type='application/javascript')
-    return JsonResponse({'error': 'Service worker not found'}, status=404)
+    sw_path = os.path.join(
+        settings.BASE_DIR,
+        "static",
+        "sw.js",
+    )
 
+    if os.path.exists(sw_path):
+        return FileResponse(
+            open(sw_path, "rb"),
+            content_type="application/javascript",
+        )
+
+    return JsonResponse(
+        {
+            "error": "Service worker not found",
+        },
+        status=404,
+    )
+
+
+# =========================================================
+# MEDICINE TIME FUNCTIONS
+# =========================================================
 
 def parse_alarm_time(alarm_time_str):
     alarm_time_str = alarm_time_str.strip().upper()
-    parsed = None
+
     try:
-        if 'AM' in alarm_time_str or 'PM' in alarm_time_str:
-            parsed = datetime.strptime(alarm_time_str, '%I:%M %p')
+        if "AM" in alarm_time_str or "PM" in alarm_time_str:
+            parsed = datetime.strptime(
+                alarm_time_str,
+                "%I:%M %p",
+            )
         else:
-            parsed = datetime.strptime(alarm_time_str, '%H:%M')
+            parsed = datetime.strptime(
+                alarm_time_str,
+                "%H:%M",
+            )
+
     except ValueError:
-        raise ValueError('Alarm time must use hh:mm or hh:mm AM/PM format')
+        raise ValueError(
+            "Alarm time must use hh:mm "
+            "or hh:mm AM/PM format"
+        )
 
     now = timezone.localtime()
+
     scheduled = datetime(
         year=now.year,
         month=now.month,
@@ -82,34 +174,73 @@ def parse_alarm_time(alarm_time_str):
         hour=parsed.hour,
         minute=parsed.minute,
     )
-    tz = timezone.get_current_timezone()
-    scheduled_dt = timezone.make_aware(scheduled, tz)
-    if scheduled_dt <= now:
-        scheduled_dt += timedelta(days=1)
-    return scheduled_dt
+
+    current_timezone = (
+        timezone.get_current_timezone()
+    )
+
+    scheduled_datetime = timezone.make_aware(
+        scheduled,
+        current_timezone,
+    )
+
+    if scheduled_datetime <= now:
+        scheduled_datetime += timedelta(days=1)
+
+    return scheduled_datetime
 
 
-def parse_alarm_datetime(alarm_date_str, alarm_time_str):
+def parse_alarm_datetime(
+    alarm_date_str,
+    alarm_time_str,
+):
     if not alarm_time_str:
-        raise ValueError('Alarm time is required')
+        raise ValueError("Alarm time is required")
 
-    time_str = alarm_time_str.strip()
-    date_str = alarm_date_str.strip() if alarm_date_str else ''
-    tz = timezone.get_current_timezone()
+    time_string = alarm_time_str.strip()
 
-    if date_str:
+    date_string = (
+        alarm_date_str.strip()
+        if alarm_date_str
+        else ""
+    )
+
+    current_timezone = (
+        timezone.get_current_timezone()
+    )
+
+    if date_string:
         try:
-            date_part = datetime.strptime(date_str, '%Y-%m-%d').date()
+            date_part = datetime.strptime(
+                date_string,
+                "%Y-%m-%d",
+            ).date()
+
         except ValueError:
-            raise ValueError('Date must use yyyy-mm-dd format')
+            raise ValueError(
+                "Date must use yyyy-mm-dd format"
+            )
 
         try:
-            if 'AM' in time_str or 'PM' in time_str:
-                time_part = datetime.strptime(time_str, '%I:%M %p').time()
+            if (
+                "AM" in time_string.upper()
+                or "PM" in time_string.upper()
+            ):
+                time_part = datetime.strptime(
+                    time_string,
+                    "%I:%M %p",
+                ).time()
             else:
-                time_part = datetime.strptime(time_str, '%H:%M').time()
+                time_part = datetime.strptime(
+                    time_string,
+                    "%H:%M",
+                ).time()
+
         except ValueError:
-            raise ValueError('Time must use hh:mm or hh:mm AM/PM format')
+            raise ValueError(
+                "Time must use hh:mm "
+                "or hh:mm AM/PM format"
+            )
 
         scheduled = datetime(
             year=date_part.year,
@@ -118,40 +249,109 @@ def parse_alarm_datetime(alarm_date_str, alarm_time_str):
             hour=time_part.hour,
             minute=time_part.minute,
         )
-        scheduled_dt = timezone.make_aware(scheduled, tz)
-        if scheduled_dt <= timezone.localtime():
-            raise ValueError('Scheduled date and time must be in the future')
-        return scheduled_dt
 
-    return parse_alarm_time(time_str)
+        scheduled_datetime = timezone.make_aware(
+            scheduled,
+            current_timezone,
+        )
 
+        if scheduled_datetime <= timezone.localtime():
+            raise ValueError(
+                "Scheduled date and time "
+                "must be in the future"
+            )
+
+        return scheduled_datetime
+
+    return parse_alarm_time(time_string)
+
+
+# =========================================================
+# MEDICINE API
+# =========================================================
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def add_medicine(request):
     try:
         data = json.loads(request.body)
-        medicine_name = data.get('medicine_name', '').strip()
-        dosage = data.get('dosage', '').strip()
-        alarm_date = data.get('alarm_date', '').strip()
-        alarm_time = data.get('alarm_time', '').strip()
-        repeat = bool(data.get('repeat', False))
-        interval_minutes = int(data.get('interval_minutes', 0))
+
+        medicine_name = data.get(
+            "medicine_name",
+            "",
+        ).strip()
+
+        dosage = data.get(
+            "dosage",
+            "",
+        ).strip()
+
+        alarm_date = data.get(
+            "alarm_date",
+            "",
+        ).strip()
+
+        alarm_time = data.get(
+            "alarm_time",
+            "",
+        ).strip()
+
+        repeat = bool(
+            data.get("repeat", False)
+        )
+
+        interval_minutes = int(
+            data.get("interval_minutes", 0)
+        )
 
         if not medicine_name:
-            return JsonResponse({'error': 'Medicine name is required'}, status=400)
+            return JsonResponse(
+                {
+                    "error": "Medicine name is required",
+                },
+                status=400,
+            )
 
         next_reminder_time = timezone.now()
         total_seconds = 0
 
         if alarm_time:
-            next_reminder_time = parse_alarm_datetime(alarm_date, alarm_time)
-            total_seconds = int((next_reminder_time - timezone.localtime()).total_seconds())
+            next_reminder_time = (
+                parse_alarm_datetime(
+                    alarm_date,
+                    alarm_time,
+                )
+            )
+
+            total_seconds = int(
+                (
+                    next_reminder_time
+                    - timezone.localtime()
+                ).total_seconds()
+            )
+
         elif interval_minutes > 0:
-            next_reminder_time = timezone.now() + timedelta(minutes=interval_minutes)
-            total_seconds = interval_minutes * 60
+            next_reminder_time = (
+                timezone.now()
+                + timedelta(
+                    minutes=interval_minutes
+                )
+            )
+
+            total_seconds = (
+                interval_minutes * 60
+            )
+
         else:
-            return JsonResponse({'error': 'Provide an alarm time or interval minutes'}, status=400)
+            return JsonResponse(
+                {
+                    "error": (
+                        "Provide an alarm time "
+                        "or interval minutes"
+                    ),
+                },
+                status=400,
+            )
 
         medicine = MedicineReminder.objects.create(
             medicine_name=medicine_name,
@@ -161,47 +361,107 @@ def add_medicine(request):
             interval_minutes=interval_minutes,
             countdown_seconds=total_seconds,
             total_seconds=total_seconds,
-            status='Pending',
+            status="Pending",
             active=True,
-            next_reminder_time=next_reminder_time
+            next_reminder_time=next_reminder_time,
         )
 
-        return JsonResponse({
-            'id': medicine.id,
-            'medicine_name': medicine.medicine_name,
-            'dosage': medicine.dosage,
-            'alarm_time': medicine.alarm_time,
-            'repeat': medicine.repeat,
-            'interval_minutes': medicine.interval_minutes,
-            'countdown_seconds': medicine.countdown_seconds,
-            'total_seconds': medicine.total_seconds,
-            'status': medicine.status,
-            'created_at': medicine.created_at.isoformat(),
-            'next_reminder_time': medicine.next_reminder_time.isoformat(),
-        })
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse(
+            {
+                "id": medicine.id,
+                "medicine_name": (
+                    medicine.medicine_name
+                ),
+                "dosage": medicine.dosage,
+                "alarm_time": medicine.alarm_time,
+                "repeat": medicine.repeat,
+                "interval_minutes": (
+                    medicine.interval_minutes
+                ),
+                "countdown_seconds": (
+                    medicine.countdown_seconds
+                ),
+                "total_seconds": (
+                    medicine.total_seconds
+                ),
+                "status": medicine.status,
+                "created_at": (
+                    medicine.created_at.isoformat()
+                ),
+                "next_reminder_time": (
+                    medicine
+                    .next_reminder_time
+                    .isoformat()
+                ),
+            },
+            status=201,
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {
+                "error": "Invalid JSON data",
+            },
+            status=400,
+        )
+
+    except Exception as error:
+        return JsonResponse(
+            {
+                "error": str(error),
+            },
+            status=400,
+        )
 
 
 @require_http_methods(["GET"])
 def get_medicines(request):
-    medicines = MedicineReminder.objects.filter(active=True).order_by('-created_at')
+    medicines = (
+        MedicineReminder.objects
+        .filter(active=True)
+        .order_by("-created_at")
+    )
+
     medicine_list = []
+
     for medicine in medicines:
-        medicine_list.append({
-            'id': medicine.id,
-            'medicine_name': medicine.medicine_name,
-            'dosage': medicine.dosage,
-            'alarm_time': medicine.alarm_time,
-            'repeat': medicine.repeat,
-            'interval_minutes': medicine.interval_minutes,
-            'countdown_seconds': medicine.countdown_seconds,
-            'total_seconds': medicine.total_seconds,
-            'status': medicine.status,
-            'next_reminder_time': medicine.next_reminder_time.isoformat(),
-            'created_at': medicine.created_at.isoformat()
-        })
-    return JsonResponse({'medicines': medicine_list})
+        medicine_list.append(
+            {
+                "id": medicine.id,
+                "medicine_name": (
+                    medicine.medicine_name
+                ),
+                "dosage": medicine.dosage,
+                "alarm_time": medicine.alarm_time,
+                "repeat": medicine.repeat,
+                "interval_minutes": (
+                    medicine.interval_minutes
+                ),
+                "countdown_seconds": (
+                    medicine.countdown_seconds
+                ),
+                "total_seconds": (
+                    medicine.total_seconds
+                ),
+                "status": medicine.status,
+                "next_reminder_time": (
+                    medicine
+                    .next_reminder_time
+                    .isoformat()
+                    if medicine.next_reminder_time
+                    else None
+                ),
+                "created_at": (
+                    medicine.created_at.isoformat()
+                ),
+            }
+        )
+
+    return JsonResponse(
+        {
+            "medicines": medicine_list,
+        }
+    )
 
 
 @csrf_exempt
@@ -209,19 +469,49 @@ def get_medicines(request):
 def mark_medicine_taken(request):
     try:
         data = json.loads(request.body)
-        medicine_id = data.get('medicine_id')
-        medicine = MedicineReminder.objects.get(id=medicine_id)
+
+        medicine_id = data.get(
+            "medicine_id"
+        )
+
+        medicine = MedicineReminder.objects.get(
+            id=medicine_id
+        )
+
         medicine.mark_taken()
-        return JsonResponse({
-            'id': medicine.id,
-            'status': medicine.status,
-            'countdown_seconds': medicine.countdown_seconds,
-            'next_reminder_time': medicine.next_reminder_time.isoformat() if medicine.next_reminder_time else None
-        })
+
+        return JsonResponse(
+            {
+                "id": medicine.id,
+                "status": medicine.status,
+                "countdown_seconds": (
+                    medicine.countdown_seconds
+                ),
+                "next_reminder_time": (
+                    medicine
+                    .next_reminder_time
+                    .isoformat()
+                    if medicine.next_reminder_time
+                    else None
+                ),
+            }
+        )
+
     except MedicineReminder.DoesNotExist:
-        return JsonResponse({'error': 'Medicine not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse(
+            {
+                "error": "Medicine not found",
+            },
+            status=404,
+        )
+
+    except Exception as error:
+        return JsonResponse(
+            {
+                "error": str(error),
+            },
+            status=400,
+        )
 
 
 @csrf_exempt
@@ -229,15 +519,45 @@ def mark_medicine_taken(request):
 def delete_medicine(request):
     try:
         data = json.loads(request.body)
-        medicine_id = data.get('medicine_id')
-        medicine = MedicineReminder.objects.get(id=medicine_id)
+
+        medicine_id = data.get(
+            "medicine_id"
+        )
+
+        medicine = MedicineReminder.objects.get(
+            id=medicine_id
+        )
+
         medicine.active = False
-        medicine.save()
-        return JsonResponse({'id': medicine.id, 'deleted': True})
+        medicine.save(
+            update_fields=[
+                "active",
+                "updated_at",
+            ]
+        )
+
+        return JsonResponse(
+            {
+                "id": medicine.id,
+                "deleted": True,
+            }
+        )
+
     except MedicineReminder.DoesNotExist:
-        return JsonResponse({'error': 'Medicine not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse(
+            {
+                "error": "Medicine not found",
+            },
+            status=404,
+        )
+
+    except Exception as error:
+        return JsonResponse(
+            {
+                "error": str(error),
+            },
+            status=400,
+        )
 
 
 @csrf_exempt
@@ -245,90 +565,191 @@ def delete_medicine(request):
 def update_medicine_countdown(request):
     try:
         data = json.loads(request.body)
-        medicine_id = data.get('medicine_id')
-        countdown_seconds = int(data.get('countdown_seconds', 0))
-        status = data.get('status', 'Pending')
-        medicine = MedicineReminder.objects.get(id=medicine_id)
-        medicine.countdown_seconds = countdown_seconds
+
+        medicine_id = data.get(
+            "medicine_id"
+        )
+
+        countdown_seconds = int(
+            data.get(
+                "countdown_seconds",
+                0,
+            )
+        )
+
+        status = data.get(
+            "status",
+            "Pending",
+        )
+
+        medicine = MedicineReminder.objects.get(
+            id=medicine_id
+        )
+
+        medicine.countdown_seconds = (
+            countdown_seconds
+        )
+
         medicine.status = status
-        medicine.save(update_fields=['countdown_seconds', 'status', 'updated_at'])
-        return JsonResponse({'id': medicine.id, 'countdown_seconds': medicine.countdown_seconds, 'status': medicine.status})
+
+        medicine.save(
+            update_fields=[
+                "countdown_seconds",
+                "status",
+                "updated_at",
+            ]
+        )
+
+        return JsonResponse(
+            {
+                "id": medicine.id,
+                "countdown_seconds": (
+                    medicine.countdown_seconds
+                ),
+                "status": medicine.status,
+            }
+        )
+
     except MedicineReminder.DoesNotExist:
-        return JsonResponse({'error': 'Medicine not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse(
+            {
+                "error": "Medicine not found",
+            },
+            status=404,
+        )
+
+    except Exception as error:
+        return JsonResponse(
+            {
+                "error": str(error),
+            },
+            status=400,
+        )
 
 
-# ==================== CONTACT API ====================
+# =========================================================
+# CONTACT API
+# Saves to database and text file
+# =========================================================
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def contact_api(request):
-    """
-    Handle contact form submissions
-    """
     try:
         data = json.loads(request.body)
-        name = data.get('name', '').strip()
-        email = data.get('email', '').strip()
-        message = data.get('message', '').strip()
-        
-        # Validate
+
+        name = data.get(
+            "name",
+            "",
+        ).strip()
+
+        email = data.get(
+            "email",
+            "",
+        ).strip()
+
+        message = data.get(
+            "message",
+            "",
+        ).strip()
+
         if not name:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Please enter your name'
-            }, status=400)
-        
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Please enter your name",
+                },
+                status=400,
+            )
+
         if not email:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Please enter your email'
-            }, status=400)
-        
-        # Simple email validation
-        if '@' not in email or '.' not in email:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Please enter a valid email address'
-            }, status=400)
-        
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Please enter your email",
+                },
+                status=400,
+            )
+
+        if "@" not in email or "." not in email:
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": (
+                        "Please enter a valid "
+                        "email address"
+                    ),
+                },
+                status=400,
+            )
+
         if not message:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Please enter your message'
-            }, status=400)
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": (
+                        "Please enter your message"
+                    ),
+                },
+                status=400,
+            )
+
+        # Save to Django database
+        contact_message = (
+            ContactMessage.objects.create(
+                name=name,
+                email=email,
+                message=message,
+            )
+        )
+
+        # Save to text file
         
-        # Log the message
-        logger.info(f"📧 Contact Form: {name} ({email}) - {message[:50]}...")
-        
-        # Save to file (simple storage)
-        log_dir = os.path.join(settings.BASE_DIR, 'contact_logs')
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        
-        log_file = os.path.join(log_dir, f'contact_{datetime.now().strftime("%Y-%m-%d")}.txt')
-        
-        with open(log_file, 'a', encoding='utf-8') as f:
-            f.write(f"\n{'='*60}\n")
-            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Name: {name}\n")
-            f.write(f"Email: {email}\n")
-            f.write(f"Message:\n{message}\n")
-            f.write(f"{'='*60}\n")
-        
-        return JsonResponse({
-            'status': 'success',
-            'message': '✅ Message sent successfully! We will get back to you soon.'
-        })
-        
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": (
+                    "Message sent successfully"
+                ),
+                "id": contact_message.id,
+            },
+            status=201,
+        )
+
     except json.JSONDecodeError:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Invalid data format'
-        }, status=400)
-    except Exception as e:
-        logger.error(f"Contact form error: {e}")
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Something went wrong. Please try again.'
-        }, status=500)
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "Invalid data format",
+            },
+            status=400,
+        )
+
+    except Exception as error:
+        logger.exception(
+            "Contact form error"
+        )
+
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": (
+                    "Something went wrong. "
+                    "Please try again."
+                ),
+                "details": str(error),
+            },
+            status=500,
+        )
+
+
+# =========================================================
+# REST FRAMEWORK CONTACT VIEW
+# =========================================================
+
+class ContactMessageCreateView(
+    generics.CreateAPIView
+):
+    queryset = ContactMessage.objects.all()
+    serializer_class = ContactMessageSerializer
