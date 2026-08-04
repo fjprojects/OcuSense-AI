@@ -25,3 +25,15 @@ class ContactMessageAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "created_at")
     search_fields = ("name", "email", "message")
     ordering = ("-created_at",)
+from .models import MonitoringSession
+
+@admin.register(MonitoringSession)
+class MonitoringSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "started_at",
+        "duration_seconds",
+        "total_blinks",
+        "average_blink_rate",
+        "average_posture_score",
+    )
+    ordering = ("-started_at",)

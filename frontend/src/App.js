@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import Home from "./components/Home";
 import ScreenHealth from "./components/ScreenHealth";
 import CameraMonitor from "./components/CameraMonitor";
+import SessionHistory from "./components/SessionHistory";
 import MedicineReminder from "./components/MedicineReminder";
 import About from "./components/About";
 import Contact from "./components/Contact";
@@ -69,6 +70,10 @@ function App() {
                 <Route
                   path="/medicine-reminder"
                   element={<MedicineReminder />}
+                />
+                <Route
+                  path="/session-history"
+                  element={<SessionHistory />}
                 />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />

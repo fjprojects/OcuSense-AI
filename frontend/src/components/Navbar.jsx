@@ -62,6 +62,16 @@ const Navbar = () => {
               </NavLink>
             </li>
             <li className="nav-item">
+              <NavLink
+                className={({ isActive }) =>
+                  isActive ? "nav-link active" : "nav-link"
+                }
+                to="/session-history"
+              >
+                Session History
+              </NavLink>
+            </li>
+            <li className="nav-item">
               <NavLink 
                 className={({ isActive }) => 
                   isActive ? "nav-link active" : "nav-link"

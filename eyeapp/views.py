@@ -11,8 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from rest_framework import generics
 
-from .models import ContactMessage, MedicineReminder
-from .serializers import ContactMessageSerializer
+from .models import ContactMessage, MedicineReminder, MonitoringSession
+from .serializers import ContactMessageSerializer, MonitoringSessionSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -742,6 +742,48 @@ def contact_api(request):
             },
             status=500,
         )
+
+
+
+
+# =========================================================
+# MONITORING SESSION API
+# =========================================================
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def monitoring_sessions_api(request):
+    if request.method == "GET":
+        sessions = MonitoringSession.objects.all()[:100]
+        serializer = MonitoringSessionSerializer(sessions, many=True)
+        return JsonResponse({"sessions": serializer.data})
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON data"}, status=400)
+
+    serializer = MonitoringSessionSerializer(data=data)
+    if serializer.is_valid():
+        session = serializer.save()
+        return JsonResponse(
+            MonitoringSessionSerializer(session).data,
+            status=201,
+        )
+
+    return JsonResponse({"errors": serializer.errors}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def monitoring_session_delete_api(request, session_id):
+    try:
+        session = MonitoringSession.objects.get(id=session_id)
+    except MonitoringSession.DoesNotExist:
+        return JsonResponse({"error": "Session not found"}, status=404)
+
+    session.delete()
+    return JsonResponse({"deleted": True})
 
 
 # =========================================================

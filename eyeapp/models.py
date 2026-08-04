@@ -217,3 +217,20 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.email}"
+
+class MonitoringSession(models.Model):
+    duration_seconds = models.PositiveIntegerField(default=0)
+    total_blinks = models.PositiveIntegerField(default=0)
+    average_blink_rate = models.FloatField(default=0)
+    average_posture_score = models.FloatField(default=0)
+    distance_warnings = models.PositiveIntegerField(default=0)
+    low_blink_warnings = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"Monitoring session {self.started_at:%Y-%m-%d %H:%M}"

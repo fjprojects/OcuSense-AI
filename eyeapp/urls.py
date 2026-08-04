@@ -21,6 +21,13 @@ urlpatterns = [
         name="update_medicine_countdown",
     ),
 
+    path("api/sessions/", views.monitoring_sessions_api, name="monitoring-sessions"),
+    path(
+        "api/sessions/<int:session_id>/",
+        views.monitoring_session_delete_api,
+        name="monitoring-session-delete",
+    ),
+
     path("api/contact/", views.contact_api, name="contact_api"),
 
     path(

@@ -60,6 +60,13 @@ const CameraMonitor = () => {
   const sessionIntervalRef = useRef(null);
   const animationFrameRef = useRef(null);
   const alertAudioRef = useRef(null);
+  const sessionStartRef = useRef(null);
+  const postureTotalRef = useRef(0);
+  const postureSampleCountRef = useRef(0);
+  const warningCountsRef = useRef({
+    distance: 0,
+    lowBlink: 0
+  });
 
   // Personalized distance calibration
   const currentFaceWidthRef = useRef(null);
@@ -282,6 +289,14 @@ const CameraMonitor = () => {
     const cooldownFinished = now - alert.lastShown >= cooldownMs;
 
     if (issueDuration >= holdDurationMs && cooldownFinished) {
+      if (key === "tooClose") {
+        warningCountsRef.current.distance += 1;
+      }
+
+      if (key === "lowBlinkRate") {
+        warningCountsRef.current.lowBlink += 1;
+      }
+
       showToast(message, type);
 
       if (playSound) {
@@ -752,6 +767,8 @@ const CameraMonitor = () => {
     const postureResult = detectPosture(headPose, distanceCm);
     setPosture(postureResult.posture);
     setPostureScore(postureResult.score);
+    postureTotalRef.current += postureResult.score;
+    postureSampleCountRef.current += 1;
 
     triggerSmartAlert(
       "poorPosture",
@@ -769,8 +786,62 @@ const CameraMonitor = () => {
     triggerSmartAlert
   ]);
 
+  // ==================== SAVE MONITORING SESSION ====================
+  const saveMonitoringSession = useCallback(async () => {
+    const startedAt = sessionStartRef.current;
+
+    if (!startedAt) return;
+
+    const endedAt = Date.now();
+    const durationSeconds = Math.max(
+      1,
+      Math.floor((endedAt - startedAt) / 1000)
+    );
+
+    const averageBlinkRate =
+      durationSeconds > 0
+        ? (blinkCountRef.current / durationSeconds) * 60
+        : 0;
+
+    const averagePostureScore =
+      postureSampleCountRef.current > 0
+        ? postureTotalRef.current / postureSampleCountRef.current
+        : 0;
+
+    const response = await fetch("/api/sessions/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        duration_seconds: durationSeconds,
+        total_blinks: blinkCountRef.current,
+        average_blink_rate: Number(averageBlinkRate.toFixed(2)),
+        average_posture_score: Number(averagePostureScore.toFixed(2)),
+        distance_warnings: warningCountsRef.current.distance,
+        low_blink_warnings: warningCountsRef.current.lowBlink,
+        started_at: new Date(startedAt).toISOString(),
+        ended_at: new Date(endedAt).toISOString()
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Could not save monitoring session");
+    }
+  }, []);
+
   // ==================== STOP CAMERA ====================
   const stopCamera = useCallback(async () => {
+    if (sessionStartRef.current) {
+      try {
+        await saveMonitoringSession();
+        showToast("Monitoring session saved", "success");
+      } catch (error) {
+        showToast(error.message, "error");
+      }
+    }
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -805,6 +876,7 @@ const CameraMonitor = () => {
     setIsCameraActive(false);
     setStatus('Stopped');
     setSessionStart(null);
+    sessionStartRef.current = null;
     setSessionTime(0);
     noFaceFrameCountRef.current = 0;
     setFaceDetected(false);
@@ -816,7 +888,7 @@ const CameraMonitor = () => {
     setCalibrationProgress(0);
     
     showToast('Camera stopped', 'info');
-  }, [showToast]);
+  }, [saveMonitoringSession, showToast]);
 
   // ==================== START CAMERA ====================
   const startCamera = useCallback(async () => {
@@ -890,9 +962,17 @@ const CameraMonitor = () => {
       lastFrameTimeRef.current = 0;
       detect(0);
 
+      const startedAt = Date.now();
       setIsCameraActive(true);
       setStatus("Calibrating...");
-      setSessionStart(Date.now());
+      setSessionStart(startedAt);
+      sessionStartRef.current = startedAt;
+      postureTotalRef.current = 0;
+      postureSampleCountRef.current = 0;
+      warningCountsRef.current = {
+        distance: 0,
+        lowBlink: 0
+      };
       
       // Reset everything
       blinkCountRef.current = 0;
