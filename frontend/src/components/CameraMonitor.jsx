@@ -41,6 +41,7 @@ const CameraMonitor = () => {
   const faceMeshRef = useRef(null);
   const sessionIntervalRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const alertAudioRef = useRef(null);
 
   // Personalized distance calibration
   const currentFaceWidthRef = useRef(null);
@@ -212,6 +213,24 @@ const CameraMonitor = () => {
     return { posture, score: Math.max(0, score) };
   }, []);
 
+  // ==================== ALERT SOUND ====================
+  const playAlertSound = useCallback(() => {
+    try {
+      if (!alertAudioRef.current) {
+        alertAudioRef.current = new Audio("/alert.mp3");
+        alertAudioRef.current.volume = 0.65;
+      }
+
+      alertAudioRef.current.currentTime = 0;
+
+      alertAudioRef.current.play().catch(() => {
+        // Browser may block audio before user interaction.
+      });
+    } catch (error) {
+      console.warn("Alert sound could not play:", error);
+    }
+  }, []);
+
   // ==================== SMART ALERT CONTROL ====================
   const triggerSmartAlert = useCallback((
     key,
@@ -219,7 +238,8 @@ const CameraMonitor = () => {
     holdDurationMs,
     cooldownMs,
     message,
-    type = "warning"
+    type = "warning",
+    playSound = false
   ) => {
     const alert = alertStateRef.current[key];
 
@@ -242,12 +262,17 @@ const CameraMonitor = () => {
 
     if (issueDuration >= holdDurationMs && cooldownFinished) {
       showToast(message, type);
+
+      if (playSound) {
+        playAlertSound();
+      }
+
       alert.lastShown = now;
 
       // Require the issue to persist again before another warning.
       alert.since = now;
     }
-  }, [showToast]);
+  }, [showToast, playAlertSound]);
 
   // ==================== CALIBRATE FACE DISTANCE ====================
   const calibrateDistance = useCallback(() => {
@@ -343,7 +368,9 @@ const CameraMonitor = () => {
           true,
           3000,
           30000,
-          "Face not detected. Please sit inside the camera frame."
+          "Face not detected. Please sit inside the camera frame.",
+          "warning",
+          true
         );
       }
 
@@ -430,7 +457,9 @@ const CameraMonitor = () => {
         distanceCm < 35,
         7000,
         120000,
-        "You have been too close to the screen. Move back to about 40?60 cm."
+        "You have been too close to the screen. Move back to about 40?60 cm.",
+        "warning",
+        true
       );
     }
 
@@ -758,7 +787,9 @@ const CameraMonitor = () => {
           rate < 8,
         10000,
         180000,
-        "Your blink rate has remained low. Blink naturally or take a short eye break."
+        "Your blink rate has remained low. Blink naturally or take a short eye break.",
+        "warning",
+        true
       );
 
       triggerSmartAlert(
@@ -768,7 +799,9 @@ const CameraMonitor = () => {
           rate > 25,
         10000,
         180000,
-        "Your blink rate has remained high. Eye irritation or tiredness may be affecting you."
+        "Your blink rate has remained high. Eye irritation or tiredness may be affecting you.",
+        "warning",
+        true
       );
     }
   }, [triggerSmartAlert]);
