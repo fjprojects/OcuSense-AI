@@ -24,6 +24,15 @@ const CameraMonitor = () => {
   const [isDistanceCalibrated, setIsDistanceCalibrated] = useState(
     () => Boolean(localStorage.getItem("ocusenseFaceWidthAt50Cm"))
   );
+  const [isDistanceCalibrating, setIsDistanceCalibrating] = useState(false);
+  const [distanceCalibrationCountdown, setDistanceCalibrationCountdown] =
+    useState(0);
+  const [distanceCalibrationProgress, setDistanceCalibrationProgress] =
+    useState(0);
+  const [distanceCalibrationQuality, setDistanceCalibrationQuality] =
+    useState(
+      () => localStorage.getItem("ocusenseDistanceCalibrationQuality") || "None"
+    );
   const [posture, setPosture] = useState('good');
   const [postureScore, setPostureScore] = useState(100);
   
@@ -48,7 +57,10 @@ const CameraMonitor = () => {
   const calibratedFaceWidthRef = useRef(
     Number(localStorage.getItem("ocusenseFaceWidthAt50Cm")) || null
   );
+  const distanceCalibrationSamplesRef = useRef([]);
+  const distanceCalibrationActiveRef = useRef(false);
   const DISTANCE_CALIBRATION_CM = 50;
+  const DISTANCE_CALIBRATION_SAMPLE_COUNT = 45;
 
   // Prevent temporary landmark loss from instantly changing the UI
   const noFaceFrameCountRef = useRef(0);
@@ -275,10 +287,8 @@ const CameraMonitor = () => {
   }, [showToast, playAlertSound]);
 
   // ==================== CALIBRATE FACE DISTANCE ====================
-  const calibrateDistance = useCallback(() => {
-    const currentFaceWidth = currentFaceWidthRef.current;
-
-    if (!isCameraActive || !faceDetected || !currentFaceWidth) {
+  const calibrateDistance = useCallback(async () => {
+    if (!isCameraActive || !faceDetected || !currentFaceWidthRef.current) {
       showToast(
         "Start the camera and keep your full face visible first.",
         "warning"
@@ -286,26 +296,49 @@ const CameraMonitor = () => {
       return;
     }
 
-    calibratedFaceWidthRef.current = currentFaceWidth;
-    localStorage.setItem(
-      "ocusenseFaceWidthAt50Cm",
-      String(currentFaceWidth)
-    );
+    if (isDistanceCalibrating) return;
 
-    setIsDistanceCalibrated(true);
+    setIsDistanceCalibrating(true);
+    setDistanceCalibrationProgress(0);
+    setDistanceCalibrationQuality("Preparing");
+
+    distanceCalibrationSamplesRef.current = [];
+    distanceCalibrationActiveRef.current = false;
 
     showToast(
-      "Distance calibrated at 50 cm.",
-      "success"
+      "Sit about 50 cm away and face the camera directly.",
+      "info"
     );
-  }, [isCameraActive, faceDetected, showToast]);
+
+    for (let seconds = 3; seconds >= 1; seconds--) {
+      setDistanceCalibrationCountdown(seconds);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    setDistanceCalibrationCountdown(0);
+    distanceCalibrationActiveRef.current = true;
+  }, [
+    isCameraActive,
+    faceDetected,
+    isDistanceCalibrating,
+    showToast
+  ]);
 
   const resetDistanceCalibration = useCallback(() => {
     calibratedFaceWidthRef.current = null;
     currentFaceWidthRef.current = null;
 
+    distanceCalibrationSamplesRef.current = [];
+    distanceCalibrationActiveRef.current = false;
+
     localStorage.removeItem("ocusenseFaceWidthAt50Cm");
+    localStorage.removeItem("ocusenseDistanceCalibrationQuality");
+
     setIsDistanceCalibrated(false);
+    setIsDistanceCalibrating(false);
+    setDistanceCalibrationCountdown(0);
+    setDistanceCalibrationProgress(0);
+    setDistanceCalibrationQuality("None");
 
     showToast("Distance calibration removed.", "info");
   }, [showToast]);
@@ -421,6 +454,83 @@ const CameraMonitor = () => {
     if (leftCheek && rightCheek) {
       const faceWidth = Math.abs(rightCheek.x - leftCheek.x);
       currentFaceWidthRef.current = faceWidth;
+
+      if (
+        distanceCalibrationActiveRef.current &&
+        faceWidth > 0
+      ) {
+        distanceCalibrationSamplesRef.current.push(faceWidth);
+
+        const sampleCount =
+          distanceCalibrationSamplesRef.current.length;
+
+        setDistanceCalibrationProgress(
+          Math.min(
+            100,
+            Math.round(
+              (sampleCount / DISTANCE_CALIBRATION_SAMPLE_COUNT) * 100
+            )
+          )
+        );
+
+        if (sampleCount >= DISTANCE_CALIBRATION_SAMPLE_COUNT) {
+          distanceCalibrationActiveRef.current = false;
+
+          const samples = [
+            ...distanceCalibrationSamplesRef.current
+          ].sort((a, b) => a - b);
+
+          const median =
+            samples[Math.floor(samples.length / 2)];
+
+          const mean =
+            samples.reduce((sum, value) => sum + value, 0) /
+            samples.length;
+
+          const variance =
+            samples.reduce(
+              (sum, value) => sum + Math.pow(value - mean, 2),
+              0
+            ) / samples.length;
+
+          const standardDeviation = Math.sqrt(variance);
+          const variationRatio =
+            mean > 0 ? standardDeviation / mean : 1;
+
+          if (variationRatio <= 0.035) {
+            calibratedFaceWidthRef.current = median;
+
+            localStorage.setItem(
+              "ocusenseFaceWidthAt50Cm",
+              String(median)
+            );
+
+            localStorage.setItem(
+              "ocusenseDistanceCalibrationQuality",
+              "Good"
+            );
+
+            setIsDistanceCalibrated(true);
+            setDistanceCalibrationQuality("Good");
+
+            showToast(
+              "Distance calibration completed successfully.",
+              "success"
+            );
+          } else {
+            setDistanceCalibrationQuality("Poor");
+
+            showToast(
+              "Calibration was unstable. Keep your head still and try again.",
+              "warning"
+            );
+          }
+
+          setIsDistanceCalibrating(false);
+          setDistanceCalibrationProgress(100);
+          distanceCalibrationSamplesRef.current = [];
+        }
+      }
 
       if (
         calibratedFaceWidthRef.current &&
@@ -960,11 +1070,19 @@ const CameraMonitor = () => {
               <button
                 className="btn btn-outline-light"
                 onClick={calibrateDistance}
-                disabled={!isCameraActive || !faceDetected}
-                title="Sit approximately 50 cm from the screen before clicking"
+                disabled={
+                  !isCameraActive ||
+                  !faceDetected ||
+                  isDistanceCalibrating
+                }
+                title="Sit approximately 50 cm from the screen and face forward"
               >
                 <i className="fas fa-ruler me-2"></i>
-                Calibrate 50 cm
+                {isDistanceCalibrating
+                  ? distanceCalibrationCountdown > 0
+                    ? `Starting in ${distanceCalibrationCountdown}`
+                    : `Calibrating ${distanceCalibrationProgress}%`
+                  : "Calibrate 50 cm"}
               </button>
 
               {isDistanceCalibrated && (
@@ -1067,8 +1185,10 @@ const CameraMonitor = () => {
                 <p className="small-note mb-1">Face Distance</p>
                 <strong style={{ color: distanceColor }}>{distance}</strong>
                 <small className="d-block text-muted">
-                  {isDistanceCalibrated
-                    ? "Personalized calibration"
+                  {isDistanceCalibrating
+                    ? `Calibration ${distanceCalibrationProgress}%`
+                    : isDistanceCalibrated
+                    ? `Personalized calibration ? ${distanceCalibrationQuality}`
                     : "Uncalibrated estimate"}
                 </small>
               </div>
