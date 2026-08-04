@@ -46,6 +46,7 @@ const CameraMonitor = () => {
   const minuteStartRef = useRef(Date.now());
   const eyeStateRef = useRef("OPEN");
   const closedFrameCountRef = useRef(0);
+  const invalidClosureRef = useRef(false);
   const lastBlinkTimeRef = useRef(0);
   
   // Calibration refs
@@ -272,43 +273,52 @@ const CameraMonitor = () => {
       const rightEAR = calculateEAR(rightEyeP1, rightEyeP2, rightEyeP3, rightEyeP4, rightEyeP5, rightEyeP6);
       
       // Use MINIMUM of both eyes (not average) - detects blink when either eye closes
-      const minEAR = Math.min(leftEAR, rightEAR);
-      
-      setEarValue(minEAR);
-      
-      // Run calibration if needed
+      // Average EAR is displayed and used during open-eye calibration.
+      const averageEAR = (leftEAR + rightEAR) / 2;
+      setEarValue(averageEAR);
+
+      // Run calibration if needed.
       if (!isCalibratedRef.current) {
-        calibrateThreshold(minEAR);
-        // Still process posture even during calibration
+        calibrateThreshold(averageEAR);
+
         const headPose = calculateHeadPose(landmarks);
         const postureResult = detectPosture(headPose, distanceCm);
         setPosture(postureResult.posture);
         setPostureScore(postureResult.score);
         return;
       }
-      
+
       const currentThreshold = calibratedThresholdRef.current;
-      
-      // State machine for blink detection
-      if (minEAR < currentThreshold) {
+
+      // A blink begins only when BOTH eyes are below the threshold.
+      // This prevents a wink or one unstable landmark from counting.
+      const bothEyesClosed =
+        leftEAR < currentThreshold && rightEAR < currentThreshold;
+
+      if (bothEyesClosed) {
         closedFrameCountRef.current++;
-        
-        // Reset if closed too long (stuck state protection)
-        if (closedFrameCountRef.current > MAX_CLOSED_FRAMES) {
-          eyeStateRef.current = "OPEN";
-          closedFrameCountRef.current = 0;
-        } else if (closedFrameCountRef.current >= BLINK_THRESHOLD_FRAMES && eyeStateRef.current === "OPEN") {
+
+        if (closedFrameCountRef.current >= BLINK_THRESHOLD_FRAMES) {
           eyeStateRef.current = "CLOSED";
-          setEyeState('closed');
+          setEyeState("closed");
+        }
+
+        // Long closures are not counted as normal blinks.
+        if (closedFrameCountRef.current > MAX_CLOSED_FRAMES) {
+          invalidClosureRef.current = true;
         }
       } else {
-        setEyeState('open');
-        
-        if (eyeStateRef.current === "CLOSED" && 
-            closedFrameCountRef.current >= BLINK_THRESHOLD_FRAMES &&
-            closedFrameCountRef.current <= MAX_CLOSED_FRAMES) {
-          
+        setEyeState("open");
+
+        const validBlink =
+          eyeStateRef.current === "CLOSED" &&
+          !invalidClosureRef.current &&
+          closedFrameCountRef.current >= BLINK_THRESHOLD_FRAMES &&
+          closedFrameCountRef.current <= MAX_CLOSED_FRAMES;
+
+        if (validBlink) {
           const now = Date.now();
+
           if (now - lastBlinkTimeRef.current > BLINK_COOLDOWN_MS) {
             blinkCountRef.current++;
             blinkRateCountRef.current++;
@@ -316,9 +326,10 @@ const CameraMonitor = () => {
             lastBlinkTimeRef.current = now;
           }
         }
-        
+
         eyeStateRef.current = "OPEN";
         closedFrameCountRef.current = 0;
+        invalidClosureRef.current = false;
       }
     }
 
@@ -458,6 +469,7 @@ const CameraMonitor = () => {
       minuteStartRef.current = Date.now();
       eyeStateRef.current = "OPEN";
       closedFrameCountRef.current = 0;
+      invalidClosureRef.current = false;
       lastBlinkTimeRef.current = 0;
       calibrationSamplesRef.current = [];
       calibratedThresholdRef.current = 0.16;
