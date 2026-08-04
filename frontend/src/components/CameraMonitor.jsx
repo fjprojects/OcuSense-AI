@@ -53,6 +53,15 @@ const CameraMonitor = () => {
   const noFaceFrameCountRef = useRef(0);
   const NO_FACE_GRACE_FRAMES = 30;
 
+  // Each warning tracks when the issue started and when it was last shown.
+  const alertStateRef = useRef({
+    noFace: { since: null, lastShown: 0 },
+    tooClose: { since: null, lastShown: 0 },
+    poorPosture: { since: null, lastShown: 0 },
+    lowBlinkRate: { since: null, lastShown: 0 },
+    highBlinkRate: { since: null, lastShown: 0 }
+  });
+
   const { showToast } = useToast();
   
   // ==================== BLINK DETECTION REFS ====================
@@ -203,6 +212,43 @@ const CameraMonitor = () => {
     return { posture, score: Math.max(0, score) };
   }, []);
 
+  // ==================== SMART ALERT CONTROL ====================
+  const triggerSmartAlert = useCallback((
+    key,
+    isProblemActive,
+    holdDurationMs,
+    cooldownMs,
+    message,
+    type = "warning"
+  ) => {
+    const alert = alertStateRef.current[key];
+
+    if (!alert) return;
+
+    const now = Date.now();
+
+    if (!isProblemActive) {
+      alert.since = null;
+      return;
+    }
+
+    if (alert.since === null) {
+      alert.since = now;
+      return;
+    }
+
+    const issueDuration = now - alert.since;
+    const cooldownFinished = now - alert.lastShown >= cooldownMs;
+
+    if (issueDuration >= holdDurationMs && cooldownFinished) {
+      showToast(message, type);
+      alert.lastShown = now;
+
+      // Require the issue to persist again before another warning.
+      alert.since = now;
+    }
+  }, [showToast]);
+
   // ==================== CALIBRATE FACE DISTANCE ====================
   const calibrateDistance = useCallback(() => {
     const currentFaceWidth = currentFaceWidthRef.current;
@@ -291,6 +337,14 @@ const CameraMonitor = () => {
         eyeStateRef.current = "OPEN";
         closedFrameCountRef.current = 0;
         invalidClosureRef.current = false;
+
+        triggerSmartAlert(
+          "noFace",
+          true,
+          3000,
+          30000,
+          "Face not detected. Please sit inside the camera frame."
+        );
       }
 
       return;
@@ -298,6 +352,15 @@ const CameraMonitor = () => {
 
     // Face returned, so clear the missing-face counter.
     noFaceFrameCountRef.current = 0;
+
+    triggerSmartAlert(
+      "noFace",
+      false,
+      3000,
+      30000,
+      ""
+    );
+
     setFaceDetected(true);
     const landmarks = results.multiFaceLandmarks[0];
     
@@ -361,6 +424,14 @@ const CameraMonitor = () => {
       } else {
         setDistanceColor("#4ad7a8");
       }
+
+      triggerSmartAlert(
+        "tooClose",
+        distanceCm < 35,
+        7000,
+        120000,
+        "You have been too close to the screen. Move back to about 40?60 cm."
+      );
     }
 
     // Eye tracking & Blink detection
@@ -491,12 +562,21 @@ const CameraMonitor = () => {
     const postureResult = detectPosture(headPose, distanceCm);
     setPosture(postureResult.posture);
     setPostureScore(postureResult.score);
+
+    triggerSmartAlert(
+      "poorPosture",
+      postureResult.posture === "poor",
+      8000,
+      120000,
+      "Poor head position detected. Straighten your neck and face the screen."
+    );
   }, [
     calculateEAR,
     getSmoothedEAR,
     calculateHeadPose,
     detectPosture,
-    calibrateThreshold
+    calibrateThreshold,
+    triggerSmartAlert
   ]);
 
   // ==================== STOP CAMERA ====================
@@ -644,6 +724,10 @@ const CameraMonitor = () => {
       setEarValue(0);
       setEyeState('open');
       setCalibrationProgress(0);
+
+      Object.values(alertStateRef.current).forEach((alert) => {
+        alert.since = null;
+      });
       
       showToast("Calibrating eye detection... Please look naturally at the camera", "info");
     } catch (error) {
@@ -663,15 +747,31 @@ const CameraMonitor = () => {
       const rate = Math.round((blinkRateCountRef.current / elapsedSeconds) * 60);
       setBlinkRate(rate);
       
-      if (isCalibratedRef.current) {
-        if (rate < 8 && rate > 0) {
-          showToast('Low blink rate! Remember to blink more often.', 'warning');
-        } else if (rate > 25) {
-          showToast('High blink rate! You might be tired.', 'warning');
-        }
-      }
+      // Do not judge blink rate from only a few initial seconds.
+      const enoughRateData = elapsedSeconds >= 20;
+
+      triggerSmartAlert(
+        "lowBlinkRate",
+        isCalibratedRef.current &&
+          enoughRateData &&
+          rate > 0 &&
+          rate < 8,
+        10000,
+        180000,
+        "Your blink rate has remained low. Blink naturally or take a short eye break."
+      );
+
+      triggerSmartAlert(
+        "highBlinkRate",
+        isCalibratedRef.current &&
+          enoughRateData &&
+          rate > 25,
+        10000,
+        180000,
+        "Your blink rate has remained high. Eye irritation or tiredness may be affecting you."
+      );
     }
-  }, [showToast]);
+  }, [triggerSmartAlert]);
 
   // ==================== RESET BLINK RATE COUNTER ====================
   const resetBlinkRateCounter = useCallback(() => {
