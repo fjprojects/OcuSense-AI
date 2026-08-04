@@ -38,6 +38,11 @@ const CameraMonitor = () => {
   const faceMeshRef = useRef(null);
   const sessionIntervalRef = useRef(null);
   const animationFrameRef = useRef(null);
+
+  // Prevent temporary landmark loss from instantly changing the UI
+  const noFaceFrameCountRef = useRef(0);
+  const NO_FACE_GRACE_FRAMES = 30;
+
   const { showToast } = useToast();
   
   // ==================== BLINK DETECTION REFS ====================
@@ -194,17 +199,38 @@ const CameraMonitor = () => {
   // ==================== ON RESULTS CALLBACK ====================
   const onResults = useCallback((results) => {
     if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-      setFaceDetected(false);
-      setDistance('No face detected');
-      setDistanceColor('#6c757d');
-      
+      noFaceFrameCountRef.current++;
+
       if (canvasRef.current) {
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        const ctx = canvasRef.current.getContext("2d");
+        ctx.clearRect(
+          0,
+          0,
+          canvasRef.current.width,
+          canvasRef.current.height
+        );
       }
+
+      // Wait briefly because MediaPipe can lose landmarks for a few frames.
+      if (noFaceFrameCountRef.current >= NO_FACE_GRACE_FRAMES) {
+        setFaceDetected(false);
+        setDistance("No face detected");
+        setDistanceColor("#6c757d");
+        setPosture("unknown");
+        setPostureScore(0);
+        setEarValue(0);
+        setEyeState("open");
+
+        eyeStateRef.current = "OPEN";
+        closedFrameCountRef.current = 0;
+        invalidClosureRef.current = false;
+      }
+
       return;
     }
 
+    // Face returned, so clear the missing-face counter.
+    noFaceFrameCountRef.current = 0;
     setFaceDetected(true);
     const landmarks = results.multiFaceLandmarks[0];
     
@@ -376,6 +402,7 @@ const CameraMonitor = () => {
     setStatus('Stopped');
     setSessionStart(null);
     setSessionTime(0);
+    noFaceFrameCountRef.current = 0;
     setFaceDetected(false);
     setBlinkRate(0);
     setDistance('-- cm');
