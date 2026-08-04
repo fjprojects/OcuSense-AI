@@ -21,6 +21,9 @@ const CameraMonitor = () => {
   // Distance & posture
   const [distance, setDistance] = useState('-- cm');
   const [distanceColor, setDistanceColor] = useState('#6c757d');
+  const [isDistanceCalibrated, setIsDistanceCalibrated] = useState(
+    () => Boolean(localStorage.getItem("ocusenseFaceWidthAt50Cm"))
+  );
   const [posture, setPosture] = useState('good');
   const [postureScore, setPostureScore] = useState(100);
   
@@ -38,6 +41,13 @@ const CameraMonitor = () => {
   const faceMeshRef = useRef(null);
   const sessionIntervalRef = useRef(null);
   const animationFrameRef = useRef(null);
+
+  // Personalized distance calibration
+  const currentFaceWidthRef = useRef(null);
+  const calibratedFaceWidthRef = useRef(
+    Number(localStorage.getItem("ocusenseFaceWidthAt50Cm")) || null
+  );
+  const DISTANCE_CALIBRATION_CM = 50;
 
   // Prevent temporary landmark loss from instantly changing the UI
   const noFaceFrameCountRef = useRef(0);
@@ -193,6 +203,42 @@ const CameraMonitor = () => {
     return { posture, score: Math.max(0, score) };
   }, []);
 
+  // ==================== CALIBRATE FACE DISTANCE ====================
+  const calibrateDistance = useCallback(() => {
+    const currentFaceWidth = currentFaceWidthRef.current;
+
+    if (!isCameraActive || !faceDetected || !currentFaceWidth) {
+      showToast(
+        "Start the camera and keep your full face visible first.",
+        "warning"
+      );
+      return;
+    }
+
+    calibratedFaceWidthRef.current = currentFaceWidth;
+    localStorage.setItem(
+      "ocusenseFaceWidthAt50Cm",
+      String(currentFaceWidth)
+    );
+
+    setIsDistanceCalibrated(true);
+
+    showToast(
+      "Distance calibrated at 50 cm.",
+      "success"
+    );
+  }, [isCameraActive, faceDetected, showToast]);
+
+  const resetDistanceCalibration = useCallback(() => {
+    calibratedFaceWidthRef.current = null;
+    currentFaceWidthRef.current = null;
+
+    localStorage.removeItem("ocusenseFaceWidthAt50Cm");
+    setIsDistanceCalibrated(false);
+
+    showToast("Distance calibration removed.", "info");
+  }, [showToast]);
+
   // ==================== HANDLE ERROR ====================
   const handleError = useCallback((error) => {
     setStatus('Error');
@@ -277,24 +323,43 @@ const CameraMonitor = () => {
       });
     }
 
-    // Calculate distance
+    // Calculate personalized face distance
     const leftCheek = landmarks[234];
     const rightCheek = landmarks[454];
     let distanceCm = 45;
-    
+
     if (leftCheek && rightCheek) {
       const faceWidth = Math.abs(rightCheek.x - leftCheek.x);
-      distanceCm = 30 + (1 - faceWidth) * 50;
-      distanceCm = Math.max(20, Math.min(80, distanceCm));
-      
-      setDistance(`${distanceCm.toFixed(1)} cm`);
-      
-      if (distanceCm < 30) {
-        setDistanceColor('#fc8181');
-      } else if (distanceCm < 40) {
-        setDistanceColor('#ecc94b');
+      currentFaceWidthRef.current = faceWidth;
+
+      if (
+        calibratedFaceWidthRef.current &&
+        calibratedFaceWidthRef.current > 0 &&
+        faceWidth > 0
+      ) {
+        // Face width is approximately inversely proportional to distance.
+        distanceCm =
+          DISTANCE_CALIBRATION_CM *
+          (calibratedFaceWidthRef.current / faceWidth);
       } else {
-        setDistanceColor('#4ad7a8');
+        // Temporary estimate until the user performs calibration.
+        distanceCm = 30 + (1 - faceWidth) * 50;
+      }
+
+      distanceCm = Math.max(20, Math.min(100, distanceCm));
+
+      setDistance(
+        `${distanceCm.toFixed(1)} cm${
+          calibratedFaceWidthRef.current ? "" : " (estimate)"
+        }`
+      );
+
+      if (distanceCm < 35) {
+        setDistanceColor("#fc8181");
+      } else if (distanceCm < 40 || distanceCm > 70) {
+        setDistanceColor("#ecc94b");
+      } else {
+        setDistanceColor("#4ad7a8");
       }
     }
 
@@ -758,6 +823,27 @@ const CameraMonitor = () => {
                   </>
                 )}
               </button>
+
+              <button
+                className="btn btn-outline-light"
+                onClick={calibrateDistance}
+                disabled={!isCameraActive || !faceDetected}
+                title="Sit approximately 50 cm from the screen before clicking"
+              >
+                <i className="fas fa-ruler me-2"></i>
+                Calibrate 50 cm
+              </button>
+
+              {isDistanceCalibrated && (
+                <button
+                  className="btn btn-outline-warning"
+                  onClick={resetDistanceCalibration}
+                  disabled={isCameraActive}
+                  title="Stop the camera before resetting calibration"
+                >
+                  Reset distance
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -847,6 +933,11 @@ const CameraMonitor = () => {
               <div className="glass-card p-3">
                 <p className="small-note mb-1">Face Distance</p>
                 <strong style={{ color: distanceColor }}>{distance}</strong>
+                <small className="d-block text-muted">
+                  {isDistanceCalibrated
+                    ? "Personalized calibration"
+                    : "Uncalibrated estimate"}
+                </small>
               </div>
             </div>
             
