@@ -9,7 +9,7 @@ const FocusTimer = () => {
   const [nextBreak, setNextBreak] = useState(20 * 60);
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [strainLevel, setStrainLevel] = useState({ 
-    level: '🟢 Low', 
+    level: 'ðŸŸ¢ Low', 
     color: '#48bb78', 
     recommendation: 'Keep up the good work!' 
   });
@@ -65,11 +65,11 @@ const FocusTimer = () => {
   useEffect(() => {
     const minutes = Math.floor(seconds / 60);
     if (minutes < 20) {
-      setStrainLevel({ level: '🟢 Low', color: '#48bb78', recommendation: 'Keep up the good work!' });
+      setStrainLevel({ level: 'ðŸŸ¢ Low', color: '#48bb78', recommendation: 'Keep up the good work!' });
     } else if (minutes < 40) {
-      setStrainLevel({ level: '🟡 Medium', color: '#ecc94b', recommendation: 'Take a quick break soon' });
+      setStrainLevel({ level: 'ðŸŸ¡ Medium', color: '#ecc94b', recommendation: 'Take a quick break soon' });
     } else {
-      setStrainLevel({ level: '🔴 High', color: '#fc8181', recommendation: 'Take a break now!' });
+      setStrainLevel({ level: 'ðŸ”´ High', color: '#fc8181', recommendation: 'Take a break now!' });
     }
   }, [seconds]);
 
@@ -86,7 +86,7 @@ const FocusTimer = () => {
 
   const playSound = () => {
     try {
-      const audio = new Audio('/alert.mp3');
+      const audio = new Audio('/static/alert.mp3');
       audio.volume = 0.3;
       audio.play().catch(() => {});
     } catch (e) {}
@@ -158,7 +158,7 @@ const FocusTimer = () => {
       </div>
 
       <p className="small-note mb-3" style={{ color: reminderEnabled ? '#4ad7a8' : '#fc8181' }}>
-        {reminderEnabled ? ' Reminder Enabled' : '❌ Reminder Disabled'}
+        {reminderEnabled ? ' Reminder Enabled' : 'âŒ Reminder Disabled'}
       </p>
 
       <div className="d-flex flex-wrap gap-2">

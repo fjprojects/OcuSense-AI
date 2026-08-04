@@ -217,7 +217,7 @@ const CameraMonitor = () => {
   const playAlertSound = useCallback(() => {
     try {
       if (!alertAudioRef.current) {
-        alertAudioRef.current = new Audio("/alert.mp3");
+        alertAudioRef.current = new Audio("/static/alert.mp3");
         alertAudioRef.current.volume = 0.65;
       }
 
