@@ -17,6 +17,15 @@ const CameraMonitor = () => {
   const [earValue, setEarValue] = useState(0);
   const [eyeState, setEyeState] = useState('open');
   const [calibrationProgress, setCalibrationProgress] = useState(0);
+
+  // Blink detector debugging
+  const [showBlinkDebug, setShowBlinkDebug] = useState(false);
+  const [leftEarDebug, setLeftEarDebug] = useState(0);
+  const [rightEarDebug, setRightEarDebug] = useState(0);
+  const [blinkDetectorState, setBlinkDetectorState] = useState("OPEN");
+  const [lastClosureDuration, setLastClosureDuration] = useState(0);
+  const [lastBlinkDecision, setLastBlinkDecision] = useState("Waiting");
+  const [lastBlinkConfidence, setLastBlinkConfidence] = useState(0);
   
   // Distance & posture
   const [distance, setDistance] = useState('-- cm');
@@ -610,6 +619,8 @@ const CameraMonitor = () => {
         (smoothedLeftEAR + smoothedRightEAR) / 2;
 
       setEarValue(averageEAR);
+      setLeftEarDebug(smoothedLeftEAR);
+      setRightEarDebug(smoothedRightEAR);
 
       // Calibrate only using stable open-eye readings.
       if (!isCalibratedRef.current) {
@@ -640,6 +651,9 @@ const CameraMonitor = () => {
         if (eyeStateRef.current === "OPEN") {
           eyeStateRef.current = "CLOSING";
           closureStartTimeRef.current = now;
+
+          setBlinkDetectorState("CLOSING");
+          setLastBlinkDecision("Possible blink");
         }
 
         const closedDuration =
@@ -650,16 +664,40 @@ const CameraMonitor = () => {
         if (closedDuration >= MIN_BLINK_DURATION_MS) {
           eyeStateRef.current = "CLOSED";
           setEyeState("closed");
+          setBlinkDetectorState("CLOSED");
+          setLastClosureDuration(Math.round(closedDuration));
         }
 
         if (closedDuration > MAX_BLINK_DURATION_MS) {
           invalidClosureRef.current = true;
+          setLastBlinkDecision("Rejected: closure too long");
+          setLastBlinkConfidence(0);
         }
       } else if (bothEyesReopened) {
         const closedDuration =
           closureStartTimeRef.current === null
             ? 0
             : now - closureStartTimeRef.current;
+
+        const durationScore =
+          closedDuration >= MIN_BLINK_DURATION_MS &&
+          closedDuration <= MAX_BLINK_DURATION_MS
+            ? 50
+            : 0;
+
+        const leftClosureScore =
+          smoothedLeftEAR < closeThreshold ? 25 : 0;
+
+        const rightClosureScore =
+          smoothedRightEAR < closeThreshold ? 25 : 0;
+
+        const confidence =
+          durationScore +
+          leftClosureScore +
+          rightClosureScore;
+
+        setLastClosureDuration(Math.round(closedDuration));
+        setLastBlinkConfidence(confidence);
 
         const validBlink =
           eyeStateRef.current === "CLOSED" &&
@@ -688,6 +726,19 @@ const CameraMonitor = () => {
           }
 
           lastBlinkTimeRef.current = Date.now();
+
+          setLastBlinkDecision("Accepted blink");
+          setBlinkDetectorState("OPEN");
+        } else {
+          if (invalidClosureRef.current) {
+            setLastBlinkDecision("Rejected: long closure");
+          } else if (closedDuration < MIN_BLINK_DURATION_MS) {
+            setLastBlinkDecision("Rejected: too fast");
+          } else if (closedDuration > MAX_BLINK_DURATION_MS) {
+            setLastBlinkDecision("Rejected: too slow");
+          } else {
+            setLastBlinkDecision("Rejected: incomplete closure");
+          }
         }
 
         eyeStateRef.current = "OPEN";
@@ -863,6 +914,13 @@ const CameraMonitor = () => {
       setEarValue(0);
       setEyeState('open');
       setCalibrationProgress(0);
+
+      setLeftEarDebug(0);
+      setRightEarDebug(0);
+      setBlinkDetectorState("OPEN");
+      setLastClosureDuration(0);
+      setLastBlinkDecision("Waiting");
+      setLastBlinkConfidence(0);
 
       Object.values(alertStateRef.current).forEach((alert) => {
         alert.since = null;
@@ -1095,6 +1153,14 @@ const CameraMonitor = () => {
                   Reset distance
                 </button>
               )}
+
+              <button
+                className="btn btn-outline-info"
+                onClick={() => setShowBlinkDebug((value) => !value)}
+              >
+                <i className="fas fa-bug me-2"></i>
+                {showBlinkDebug ? "Hide debug" : "Blink debug"}
+              </button>
             </div>
           </div>
         </div>
@@ -1146,6 +1212,96 @@ const CameraMonitor = () => {
             </div>
           )}
         </div>
+
+        {showBlinkDebug && (
+          <div className="glass-card p-4 mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 className="mb-1">Blink Detection Debug</h5>
+                <p className="small-note mb-0">
+                  Use this only while testing blink accuracy.
+                </p>
+              </div>
+
+              <span className="status-pill">
+                {blinkDetectorState}
+              </span>
+            </div>
+
+            <div className="row g-3">
+              <div className="col-md-3">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">Left EAR</p>
+                  <strong>{leftEarDebug.toFixed(3)}</strong>
+                </div>
+              </div>
+
+              <div className="col-md-3">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">Right EAR</p>
+                  <strong>{rightEarDebug.toFixed(3)}</strong>
+                </div>
+              </div>
+
+              <div className="col-md-3">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">Close Threshold</p>
+                  <strong>
+                    {calibratedThresholdRef.current.toFixed(3)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="col-md-3">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">Reopen Threshold</p>
+                  <strong>
+                    {(
+                      calibratedThresholdRef.current *
+                      REOPEN_THRESHOLD_MULTIPLIER
+                    ).toFixed(3)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">
+                    Last Closure Duration
+                  </p>
+                  <strong>{lastClosureDuration} ms</strong>
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">
+                    Last Decision
+                  </p>
+                  <strong>{lastBlinkDecision}</strong>
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <div className="glass-card p-3">
+                  <p className="small-note mb-1">
+                    Confidence
+                  </p>
+                  <strong>{lastBlinkConfidence}%</strong>
+
+                  <div className="progress mt-2" style={{ height: "6px" }}>
+                    <div
+                      className="progress-bar"
+                      style={{
+                        width: `${lastBlinkConfidence}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="glass-card p-4">
           <h5 className="mb-3">Live Status</h5>
