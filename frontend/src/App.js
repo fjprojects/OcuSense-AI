@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -26,7 +26,7 @@ function App() {
     // Service Worker Registration
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/static/sw.js")
+        .register("/sw.js")
         .then(() => console.log("Service Worker registered"))
         .catch((err) =>
           console.warn("Service Worker registration failed:", err)
