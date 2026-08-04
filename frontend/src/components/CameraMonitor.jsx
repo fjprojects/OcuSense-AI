@@ -56,8 +56,8 @@ const CameraMonitor = () => {
 
   // More reliable blink detection
   const closureStartTimeRef = useRef(null);
-  const leftEarHistoryRef = useRef([]);
-  const rightEarHistoryRef = useRef([]);
+  const smoothedLeftEarRef = useRef(null);
+  const smoothedRightEarRef = useRef(null);
   
   // Calibration refs
   const calibrationSamplesRef = useRef([]);
@@ -68,11 +68,11 @@ const CameraMonitor = () => {
   const MIN_EAR_FOR_CALIBRATION = 0.20; // Ignore samples below this (likely blinks)
   
   // Blink timing and smoothing
-  const EAR_SMOOTHING_WINDOW = 5;
-  const MIN_BLINK_DURATION_MS = 70;
-  const MAX_BLINK_DURATION_MS = 500;
-  const BLINK_COOLDOWN_MS = 180;
-  const REOPEN_THRESHOLD_MULTIPLIER = 1.08;
+  const EAR_SMOOTHING_ALPHA = 0.65;
+  const MIN_BLINK_DURATION_MS = 55;
+  const MAX_BLINK_DURATION_MS = 650;
+  const BLINK_COOLDOWN_MS = 140;
+  const REOPEN_THRESHOLD_MULTIPLIER = 1.05;
   
   // Frame rate limiting
   const lastFrameTimeRef = useRef(0);
@@ -97,19 +97,17 @@ const CameraMonitor = () => {
   }, []);
 
   // ==================== SMOOTH EAR VALUES ====================
-  const getSmoothedEAR = useCallback((historyRef, value) => {
-    historyRef.current.push(value);
-
-    if (historyRef.current.length > EAR_SMOOTHING_WINDOW) {
-      historyRef.current.shift();
+  const getSmoothedEAR = useCallback((earRef, value) => {
+    if (earRef.current === null) {
+      earRef.current = value;
+      return value;
     }
 
-    const sorted = [...historyRef.current].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
+    earRef.current =
+      EAR_SMOOTHING_ALPHA * value +
+      (1 - EAR_SMOOTHING_ALPHA) * earRef.current;
 
-    return sorted.length % 2 === 0
-      ? (sorted[middle - 1] + sorted[middle]) / 2
-      : sorted[middle];
+    return earRef.current;
   }, []);
 
   // ==================== CALIBRATE EAR THRESHOLD ====================
@@ -324,12 +322,12 @@ const CameraMonitor = () => {
       // Use MINIMUM of both eyes (not average) - detects blink when either eye closes
       // Smooth each eye separately to reduce landmark vibration.
       const smoothedLeftEAR = getSmoothedEAR(
-        leftEarHistoryRef,
+        smoothedLeftEarRef,
         leftEAR
       );
 
       const smoothedRightEAR = getSmoothedEAR(
-        rightEarHistoryRef,
+        smoothedRightEarRef,
         rightEAR
       );
 
@@ -400,7 +398,20 @@ const CameraMonitor = () => {
         ) {
           blinkCountRef.current++;
           blinkRateCountRef.current++;
+
           setBlinkCount(blinkCountRef.current);
+
+          const elapsedSeconds =
+            (Date.now() - minuteStartRef.current) / 1000;
+
+          if (elapsedSeconds > 0) {
+            setBlinkRate(
+              Math.round(
+                (blinkRateCountRef.current / elapsedSeconds) * 60
+              )
+            );
+          }
+
           lastBlinkTimeRef.current = Date.now();
         }
 
@@ -556,8 +567,8 @@ const CameraMonitor = () => {
       closedFrameCountRef.current = 0;
       invalidClosureRef.current = false;
       closureStartTimeRef.current = null;
-      leftEarHistoryRef.current = [];
-      rightEarHistoryRef.current = [];
+      smoothedLeftEarRef.current = null;
+      smoothedRightEarRef.current = null;
       lastBlinkTimeRef.current = 0;
       calibrationSamplesRef.current = [];
       calibratedThresholdRef.current = 0.16;
