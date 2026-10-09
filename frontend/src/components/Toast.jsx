@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useCallback, useEffect, useRef } from 'react';
 
 export const ToastContext = createContext();
 
@@ -12,20 +12,29 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const nextId = useRef(0);
+  const timers = useRef(new Set());
 
-  const showToast = (message, type = 'info') => {
-    const id = Date.now();
+  const showToast = useCallback((message, type = 'info') => {
+    const id = ++nextId.current;
     setToasts(prev => [...prev, { id, message, type }]);
     
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      timers.current.delete(timer);
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
-  };
+    timers.current.add(timer);
+  }, []);
+
+  useEffect(() => () => {
+    timers.current.forEach(clearTimeout);
+    timers.current.clear();
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="toast-container">
+      <div className="toast-container" aria-label="Notifications">
         {toasts.map(toast => (
           <Toast key={toast.id} message={toast.message} type={toast.type} />
         ))}
@@ -44,10 +53,11 @@ const Toast = ({ message, type }) => {
 
   return (
     <div
+      role={type === 'error' ? 'alert' : 'status'}
       style={{
         padding: '15px 20px',
         borderRadius: '12px',
-        color: type === 'warning' ? '#744210' : '#ffffff',
+        color: '#03110c',
         fontWeight: '500',
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         animation: 'slideIn 0.3s ease',

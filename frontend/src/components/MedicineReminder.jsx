@@ -1,39 +1,53 @@
 import React, { useState } from 'react';
 import { useToast } from './Toast';
+import { useMedicines } from './MedicineProvider';
+import { enableReminderSound } from '../services/notifications';
+
+const emptyMedicine = { name: '', dosage: '', repeat: true, time: '' };
 
 const MedicineReminder = () => {
-  const [medicines, setMedicines] = useState([
-    { id: 1, name: 'Eye Drops', dosage: '2 drops', frequency: 'Twice daily', time: '09:00', active: true },
-    { id: 2, name: 'Vitamin A', dosage: '1 tablet', frequency: 'Daily', time: '20:00', active: true }
-  ]);
-  const [newMedicine, setNewMedicine] = useState({ name: '', dosage: '', frequency: '', time: '' });
+  const { medicines, isLoading, error, refresh, add, remove, toggle, taken } = useMedicines();
+  const [newMedicine, setNewMedicine] = useState(emptyMedicine);
+  const [busy, setBusy] = useState(false);
   const { showToast } = useToast();
 
-  const addMedicine = () => {
-    if (!newMedicine.name || !newMedicine.dosage || !newMedicine.frequency || !newMedicine.time) {
-      showToast('Please fill all fields', 'error');
+  const perform = async (action, message) => {
+    setBusy(true);
+    try {
+      await action();
+      showToast(message, 'success');
+    } catch (problem) {
+      showToast(problem.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addMedicine = async event => {
+    event.preventDefault();
+    if (!newMedicine.name.trim() || !newMedicine.time) {
+      showToast('Enter a medicine name and alarm time', 'error');
       return;
     }
-
-    setMedicines([...medicines, { 
-      id: Date.now(), 
-      ...newMedicine, 
-      active: true 
-    }]);
-    setNewMedicine({ name: '', dosage: '', frequency: '', time: '' });
-    showToast(' Medicine added successfully!', 'success');
+    await enableReminderSound().catch(() => {});
+    await perform(async () => {
+      await add({
+        medicine_name: newMedicine.name.trim(), dosage: newMedicine.dosage.trim(),
+        alarm_time: newMedicine.time, repeat: newMedicine.repeat,
+        timezone_name: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      });
+      setNewMedicine(emptyMedicine);
+    }, 'Medicine reminder saved');
   };
 
-  const toggleMedicine = (id) => {
-    setMedicines(medicines.map(med => 
-      med.id === id ? { ...med, active: !med.active } : med
-    ));
-    showToast(' Medicine status updated', 'info');
-  };
-
-  const deleteMedicine = (id) => {
-    setMedicines(medicines.filter(med => med.id !== id));
-    showToast(' Medicine removed', 'error');
+  const enableAlerts = async () => {
+    await enableReminderSound().catch(() => {});
+    if (!('Notification' in window)) {
+      showToast('In-app alerts are available while this app is open', 'info');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    showToast(permission === 'granted' ? 'Notifications enabled' : 'In-app alerts remain enabled', 'info');
   };
 
   return (
@@ -42,101 +56,93 @@ const MedicineReminder = () => {
         <div className="glass-card p-5 mb-4">
           <p className="text-uppercase text-accent mb-3 small-note">Medicine Reminder</p>
           <h1 className="section-heading mb-3">Track your eye care medication</h1>
-          <p className="small-note">Schedule reminders for eye care medication and track alerts.</p>
+          <p className="small-note">Save reminders for this browser and receive alerts while the app is open.</p>
+          <button className="btn btn-outline-light" onClick={enableAlerts}>Enable alerts</button>
         </div>
 
         <div className="glass-card p-4 mb-4">
           <h5 className="mb-3">Add New Medicine</h5>
-          <div className="row g-3">
-            <div className="col-md-3">
-              <input
-                type="text"
+          <form className="row g-3" onSubmit={addMedicine}>
+            <div className="col-md-6">
+              <label htmlFor="medicine-name" className="small-note">Medicine name</label>
+              <input id="medicine-name" type="text" maxLength={100} required
                 className="form-control bg-transparent text-white border-light"
-                placeholder="Medicine name"
                 value={newMedicine.name}
-                onChange={(e) => setNewMedicine({...newMedicine, name: e.target.value})}
-              />
+                onChange={e => setNewMedicine({ ...newMedicine, name: e.target.value })} />
             </div>
-            <div className="col-md-3">
-              <input
-                type="text"
+            <div className="col-md-6">
+              <label htmlFor="medicine-dosage" className="small-note">Dosage (optional)</label>
+              <input id="medicine-dosage" type="text" maxLength={100}
                 className="form-control bg-transparent text-white border-light"
-                placeholder="Dosage"
                 value={newMedicine.dosage}
-                onChange={(e) => setNewMedicine({...newMedicine, dosage: e.target.value})}
-              />
+                onChange={e => setNewMedicine({ ...newMedicine, dosage: e.target.value })} />
             </div>
-            <div className="col-md-3">
-              <input
-                type="text"
-                className="form-control bg-transparent text-white border-light"
-                placeholder="Frequency"
-                value={newMedicine.frequency}
-                onChange={(e) => setNewMedicine({...newMedicine, frequency: e.target.value})}
-              />
+            <div className="col-md-5">
+              <label htmlFor="medicine-frequency" className="small-note">Frequency</label>
+              <select id="medicine-frequency" className="form-select"
+                value={newMedicine.repeat ? 'daily' : 'once'}
+                onChange={e => setNewMedicine({ ...newMedicine, repeat: e.target.value === 'daily' })}>
+                <option value="daily">Daily</option>
+                <option value="once">One time</option>
+              </select>
             </div>
-            <div className="col-md-2">
-              <input
-                type="time"
+            <div className="col-md-4">
+              <label htmlFor="medicine-time" className="small-note">Alarm time (your local time)</label>
+              <input id="medicine-time" type="time" required
                 className="form-control bg-transparent text-white border-light"
                 value={newMedicine.time}
-                onChange={(e) => setNewMedicine({...newMedicine, time: e.target.value})}
-              />
+                onChange={e => setNewMedicine({ ...newMedicine, time: e.target.value })} />
             </div>
-            <div className="col-md-1">
-              <button className="btn btn-accent w-100" onClick={addMedicine}>
-                <i className="fas fa-plus"></i>
-              </button>
+            <div className="col-md-3 d-flex align-items-end">
+              <button type="submit" className="btn btn-accent w-100" disabled={busy}>Save reminder</button>
             </div>
-          </div>
+          </form>
         </div>
 
         <div className="glass-card p-4">
           <h5 className="mb-3">Your Medicines</h5>
-          {medicines.length === 0 ? (
-            <p className="small-note text-center">No medicines added yet.</p>
-          ) : (
-            medicines.map(med => (
-              <div key={med.id} className="glass-card p-3 mb-2">
-                <div className="d-flex justify-content-between align-items-center">
+          {error && <div role="alert" className="alert alert-danger">{error}
+            <button className="btn btn-link" onClick={refresh}>Retry</button>
+          </div>}
+          {isLoading ? <p className="small-note">Loading reminders…</p> :
+            medicines.length === 0 ? <p className="small-note text-center">No medicines added yet.</p> :
+            medicines.map(medicine => (
+              <div key={medicine.id} className="glass-card p-3 mb-2">
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
                   <div>
-                    <strong style={{ color: med.active ? '#4ad7a8' : '#6c757d' }}>
-                      {med.name}
-                    </strong>
-                    <span className="small-note ms-3">
-                      {med.dosage} - {med.frequency} at {med.time}
-                    </span>
+                    <strong style={{ color: medicine.paused ? '#adb5bd' : '#4ad7a8' }}>{medicine.medicine_name}</strong>
+                    <div className="small-note">
+                      {medicine.dosage && medicine.dosage + ' · '}
+                      {medicine.repeat ? 'Repeating' : 'One time'} · {medicine.paused ? 'Paused' :
+                        'Next: ' + new Date(medicine.next_reminder_time).toLocaleString()}
+                    </div>
                   </div>
-                  <div>
-                    <button
-                      className={`btn btn-sm ${med.active ? 'btn-warning' : 'btn-success'} me-2`}
-                      onClick={() => toggleMedicine(med.id)}
-                    >
-                      {med.active ? 'Pause' : 'Resume'}
+                  <div className="d-flex flex-wrap gap-2">
+                    <button className="btn btn-sm btn-success" disabled={busy || medicine.paused}
+                      onClick={() => perform(() => taken(medicine.id), 'Medicine marked taken')}>
+                      Taken
                     </button>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => deleteMedicine(med.id)}
-                    >
-                      <i className="fas fa-trash"></i>
+                    <button className="btn btn-sm btn-warning" disabled={busy}
+                      onClick={() => perform(() => toggle(medicine), medicine.paused ? 'Reminder resumed' : 'Reminder paused')}>
+                      {medicine.paused ? 'Resume' : 'Pause'}
+                    </button>
+                    <button className="btn btn-sm btn-danger" disabled={busy}
+                      aria-label={'Delete ' + medicine.medicine_name}
+                      onClick={() => perform(() => remove(medicine.id), 'Medicine removed')}>
+                      <i className="fas fa-trash" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            ))}
         </div>
       </div>
-
       <div className="col-lg-4">
         <div className="glass-card p-4 h-100">
-          <h5 className="mb-3">Key capabilities</h5>
-          <ul className="list-unstyled small-note mb-0">
-            <li className="mb-3"><i className="fas fa-circle-notch text-accent me-2"></i>Add new medicines</li>
-            <li className="mb-3"><i className="fas fa-circle-notch text-accent me-2"></i>Schedule reminders</li>
-            <li className="mb-3"><i className="fas fa-circle-notch text-accent me-2"></i>Pause/Resume tracking</li>
-            <li><i className="fas fa-circle-notch text-accent me-2"></i>Delete medicines</li>
-          </ul>
+          <h5 className="mb-3">Your reminders</h5>
+          <p className="small-note">Reminders are saved in the database for this browser session.
+            Keep the app open to receive scheduled alerts. Pausing a reminder suppresses its alerts.</p>
+          <p className="small-note">Clearing browser cookies ends access to this browser's saved reminders.</p>
         </div>
       </div>
     </div>

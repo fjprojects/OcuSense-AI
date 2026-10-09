@@ -142,3 +142,80 @@
     padding: 1.5rem 0 2rem;
   }
 }
+
+/* Keep the app theme after Bootstrap and make controls readable in every state. */
+.app {
+  --bs-body-color: #e6f8ff;
+  --bs-body-bg: #0b1522;
+  --bs-border-color: rgba(230, 248, 255, 0.28);
+  color-scheme: dark;
+}
+
+.app .btn-accent {
+  --bs-btn-color: #03110c;
+  --bs-btn-bg: #4ad7a8;
+  --bs-btn-hover-color: #03110c;
+  --bs-btn-hover-bg: #3ec498;
+  --bs-btn-active-color: #03110c;
+  --bs-btn-active-bg: #38b990;
+  --bs-btn-disabled-color: #03110c;
+  --bs-btn-disabled-bg: #4ad7a8;
+}
+
+.app .btn-danger { color: #260a0a; }
+.app .btn-outline-danger {
+  --bs-btn-color: #fc8181;
+  --bs-btn-border-color: #fc8181;
+  --bs-btn-hover-bg: #fc8181;
+  --bs-btn-hover-color: #260a0a;
+  border: 1px solid #fc8181;
+}
+
+.app .btn, .app .navbar-toggler { min-height: 44px; }
+.app .btn { overflow-wrap: normal; }
+.app .text-muted { color: rgba(230, 248, 255, 0.72) !important; }
+.app .form-control, .app .form-select {
+  min-height: 44px;
+  color: #e6f8ff;
+  background-color: #0b1522;
+  border-color: rgba(230, 248, 255, 0.4);
+}
+.app .form-control::placeholder { color: #9aaebf; opacity: 1; }
+.app .form-control:focus, .app .form-select:focus {
+  color: #e6f8ff;
+  background-color: #0b1522;
+  border-color: #4ad7a8;
+}
+.app .form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23e6f8ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+}
+.app .form-control[aria-invalid="true"] { border-color: #fc8181; }
+.field-error { color: #ffacac; }
+.app :focus-visible { outline: 3px solid #4ad7a8; outline-offset: 3px; }
+.glass-card, .toast-container { overflow-wrap: anywhere; }
+.toast-container { width: min(400px, calc(100vw - 32px)); right: 16px; top: 16px; }
+.skip-link {
+  position: fixed;
+  left: 16px;
+  top: -100px;
+  padding: 12px 18px;
+  background: #4ad7a8;
+  color: #03110c;
+  border-radius: 8px;
+  z-index: 10000;
+}
+.skip-link:focus { top: 16px; }
+
+@media (max-width: 575px) {
+  .app .glass-card.p-5 { padding: 1.5rem !important; }
+  .app .navbar-brand { font-size: 1.05rem; margin-right: 0.5rem; }
+  .app .navbar-toggler { min-width: 48px; }
+  .app .navbar-collapse { padding-top: 0.75rem; }
+  .app .nav-link { padding: 0.65rem 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app .btn, .app .feature-card, .app .progress-bar { transition: none; }
+  .app .btn:hover, .app .feature-card:hover { transform: none; }
+  .toast-container > div { animation: none !important; }
+}

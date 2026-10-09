@@ -8,31 +8,27 @@ import MedicineReminder from './components/MedicineReminder';
 import About from './components/About';
 import Contact from './components/Contact';
 import { ToastProvider } from './components/Toast';
+import { MedicineProvider } from './components/MedicineProvider';
 import './App.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {
   useEffect(() => {
     // Service Worker Registration
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/sw.js')
+      navigator.serviceWorker.register('/sw.js')
         .then(() => console.log(' Service Worker registered'))
         .catch((err) => console.warn(' SW registration failed:', err));
     }
 
-    // Notification Permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
   }, []);
 
   return (
     <BrowserRouter>
       <ToastProvider>
+        <MedicineProvider>
         <div className="app">
           <Navbar />
-          <main className="page-shell">
+          <main className="page-shell" id="main-content" tabIndex={-1}>
             <div className="container">
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -45,6 +41,7 @@ function App() {
             </div>
           </main>
         </div>
+        </MedicineProvider>
       </ToastProvider>
     </BrowserRouter>
   );

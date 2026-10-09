@@ -6,19 +6,19 @@ const Home = () => {
     {
       icon: 'fa-clock',
       title: 'Screen Health',
-      desc: 'Monitor screen time, viewing distance, and eye strain analysis',
+      desc: 'Track focus sessions, follow break reminders, and log your water intake',
       link: '/screen-health'
     },
     {
       icon: 'fa-video',
       title: 'Camera Monitor',
-      desc: 'Launch live camera blink detection and face distance monitoring',
+      desc: 'Track blinks in your browser and calibrate an estimated viewing distance',
       link: '/camera-monitor'
     },
     {
       icon: 'fa-pills',
       title: 'Medicine Reminder',
-      desc: 'Schedule reminders for eye care medication and track alerts',
+      desc: 'Save medicine schedules and receive alerts while the app is open',
       link: '/medicine-reminder'
     }
   ];
@@ -33,8 +33,8 @@ const Home = () => {
             </p>
             <h1 className="display-5 fw-bold mb-3">Ocusense Arena</h1>
             <p className="lead text-white-75 mb-4">
-              A modern dashboard for screen health, camera monitoring, wellness tracking,
-              and medicine scheduling with a polished, SaaS-ready interface.
+              Build healthier screen habits with timed breaks, hydration tracking,
+              camera monitoring, and medicine reminders.
             </p>
             <div className="d-flex flex-column flex-sm-row gap-3">
               <Link className="btn btn-accent btn-lg" to="/screen-health">
@@ -52,15 +52,15 @@ const Home = () => {
             <ul className="list-unstyled small-note mb-0">
               <li className="mb-3">
                 <i className="fas fa-check-circle text-success me-2"></i>
-                Dedicated pages for each feature.
+                Start and pause your focus sessions.
               </li>
               <li className="mb-3">
                 <i className="fas fa-check-circle text-success me-2"></i>
-                Clean dashboard layout with glassmorphism panels.
+                Keep camera processing on your device.
               </li>
               <li>
                 <i className="fas fa-check-circle text-success me-2"></i>
-                Responsive navigation and modern SaaS styling.
+                See your saved reminder schedule in one place.
               </li>
             </ul>
           </div>
@@ -73,7 +73,7 @@ const Home = () => {
             <p className="text-uppercase text-accent mb-2">Feature overview</p>
             <h2 className="section-heading">Explore each module</h2>
             <p className="small-note">
-              Navigate to the dedicated module pages for focused workflows and clearer presentation.
+              Choose a tool to support your next screen session.
             </p>
           </div>
         </div>

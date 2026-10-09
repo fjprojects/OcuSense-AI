@@ -1,96 +1,77 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from './Toast';
+import { enableReminderSound, playReminderSound, showReminderNotification } from '../services/notifications';
 
-const FocusTimer = () => {
-  const [seconds, setSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [totalSeconds, setTotalSeconds] = useState(0);
-  const [nextBreak, setNextBreak] = useState(20 * 60);
-  const [reminderEnabled, setReminderEnabled] = useState(true);
+const BREAK_INTERVAL = 20 * 60;
+
+const readFocusState = () => {
+  try { return JSON.parse(localStorage.getItem('focusTrackerState')) || {}; }
+  catch { return {}; }
+};
+
+const FocusTimer = ({ onStrainChange }) => {
+  const [saved] = useState(readFocusState);
+  const [seconds, setSeconds] = useState(saved.seconds || 0);
+  const [isRunning, setIsRunning] = useState(saved.isRunning || false);
+  const [isPaused, setIsPaused] = useState(saved.isPaused || false);
+  const [totalSeconds, setTotalSeconds] = useState(saved.totalSeconds || 0);
+  const [nextBreak, setNextBreak] = useState(saved.nextBreakSeconds || BREAK_INTERVAL);
+  const [reminderEnabled, setReminderEnabled] = useState(saved.reminderEnabled !== false);
   const [strainLevel, setStrainLevel] = useState({ 
-    level: '🟢 Low', 
+    level: 'Low',
     color: '#48bb78', 
     recommendation: 'Keep up the good work!' 
   });
   const timerRef = useRef(null);
   const { showToast } = useToast();
-  const BREAK_INTERVAL = 20 * 60;
 
   useEffect(() => {
-    const saved = localStorage.getItem('focusTrackerState');
-    if (saved) {
-      const state = JSON.parse(saved);
-      setSeconds(state.seconds || 0);
-      setTotalSeconds(state.totalSeconds || 0);
-      setNextBreak(state.nextBreakSeconds || BREAK_INTERVAL);
-      setIsRunning(state.isRunning || false);
-      setIsPaused(state.isPaused || false);
-      setReminderEnabled(state.reminderEnabled !== undefined ? state.reminderEnabled : true);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('focusTrackerState', JSON.stringify({
+    try { localStorage.setItem('focusTrackerState', JSON.stringify({
       seconds,
       totalSeconds,
       nextBreakSeconds: nextBreak,
       isRunning,
       isPaused,
       reminderEnabled
-    }));
+    })); } catch { /* The timer still works when browser storage is unavailable. */ }
   }, [seconds, totalSeconds, nextBreak, isRunning, isPaused, reminderEnabled]);
+
+  const showBreakAlert = useCallback(() => {
+    showToast('20-20-20 Break! Look 20 feet away for 20 seconds.', 'warning');
+    showReminderNotification('20-20-20 Break!', 'Look 20 feet away for 20 seconds.');
+    playReminderSound();
+  }, [showToast]);
 
   useEffect(() => {
     if (isRunning && !isPaused) {
       timerRef.current = setInterval(() => {
         setSeconds(prev => prev + 1);
         setTotalSeconds(prev => prev + 1);
-        setNextBreak(prev => {
-          const newVal = prev - 1;
-          if (reminderEnabled && newVal <= 0) {
-            showBreakAlert();
-            return BREAK_INTERVAL;
-          }
-          return newVal;
-        });
+        setNextBreak(prev => prev - 1);
       }, 1000);
     } else {
       clearInterval(timerRef.current);
     }
 
     return () => clearInterval(timerRef.current);
-  }, [isRunning, isPaused, reminderEnabled]);
+  }, [isRunning, isPaused]);
+
+  useEffect(() => {
+    if (isRunning && !isPaused && nextBreak <= 0) {
+      setNextBreak(BREAK_INTERVAL);
+      if (reminderEnabled) showBreakAlert();
+    }
+  }, [isRunning, isPaused, nextBreak, reminderEnabled, showBreakAlert]);
 
   useEffect(() => {
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 20) {
-      setStrainLevel({ level: '🟢 Low', color: '#48bb78', recommendation: 'Keep up the good work!' });
-    } else if (minutes < 40) {
-      setStrainLevel({ level: '🟡 Medium', color: '#ecc94b', recommendation: 'Take a quick break soon' });
-    } else {
-      setStrainLevel({ level: '🔴 High', color: '#fc8181', recommendation: 'Take a break now!' });
-    }
-  }, [seconds]);
+    const next = minutes < 20 ? { level: 'Low', color: '#48bb78', recommendation: 'Keep up the good work!' } :
+      minutes < 40 ? { level: 'Medium', color: '#ecc94b', recommendation: 'Take a quick break soon' } :
+      { level: 'High', color: '#fc8181', recommendation: 'Take a break now!' };
+    setStrainLevel(next);
+    if (onStrainChange) onStrainChange(next);
+  }, [seconds, onStrainChange]);
 
-  const showBreakAlert = () => {
-    showToast(' 20-20-20 Break! Look 20 feet away for 20 seconds.', 'warning');
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(' 20-20-20 Break!', {
-        body: 'Look 20 feet away for 20 seconds.',
-        icon: '/icon.svg'
-      });
-    }
-    playSound();
-  };
-
-  const playSound = () => {
-    try {
-      const audio = new Audio('/alert.mp3');
-      audio.volume = 0.3;
-      audio.play().catch(() => {});
-    } catch (e) {}
-  };
 
   const formatTime = (totalSeconds) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -106,6 +87,7 @@ const FocusTimer = () => {
   };
 
   const handleStart = () => {
+    enableReminderSound().catch(() => {});
     setIsRunning(true);
     setIsPaused(false);
     showToast(' Focus session started!', 'success');
@@ -162,8 +144,8 @@ const FocusTimer = () => {
       </p>
 
       <div className="d-flex flex-wrap gap-2">
-        <button className="btn btn-outline-light btn-sm" onClick={handleStart} disabled={isRunning}>
-          Start
+        <button className="btn btn-outline-light btn-sm" onClick={handleStart} disabled={isRunning && !isPaused}>
+          {isPaused ? 'Resume' : 'Start'}
         </button>
         <button className="btn btn-warning btn-sm" onClick={handlePause} disabled={!isRunning || isPaused}>
           Pause

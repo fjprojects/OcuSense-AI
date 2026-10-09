@@ -1,4 +1,14 @@
 .venv/
 __pycache__/
-*.pyc
-db.sqlite3
+*.py[cod]
+*.sqlite3
+*.sqlite3-*
+.env
+.env.*
+!.env.example
+contact_logs/
+staticfiles/
+frontend/node_modules/
+frontend/build/
+coverage/
+.pytest_cache/

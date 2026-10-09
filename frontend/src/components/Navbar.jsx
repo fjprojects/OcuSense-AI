@@ -1,25 +1,32 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleButton = useRef(null);
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark py-3">
+    <nav className="navbar navbar-expand-lg navbar-dark py-3" aria-label="Main navigation"
+      onKeyDown={event => {
+        if (event.key === 'Escape') { setIsOpen(false); toggleButton.current.focus(); }
+      }}>
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="container">
-        <NavLink className="navbar-brand" to="/">
+        <NavLink className="navbar-brand" to="/" onClick={() => setIsOpen(false)}>
           <i className="fas fa-eye"></i> Ocusense Arena
         </NavLink>
         <button
           className="navbar-toggler"
+          ref={toggleButton}
           type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#ocusenseNavbar"
           aria-controls="ocusenseNavbar"
-          aria-expanded="false"
+          aria-expanded={isOpen}
           aria-label="Toggle navigation"
+          onClick={() => setIsOpen(previous => !previous)}
         >
           <span className="navbar-toggler-icon"></span>
         </button>
-        <div className="collapse navbar-collapse" id="ocusenseNavbar">
+        <div className={'collapse navbar-collapse' + (isOpen ? ' show' : '')} id="ocusenseNavbar"
+          onClick={event => { if (event.target.closest('a')) setIsOpen(false); }}>
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
             <li className="nav-item">
               <NavLink 

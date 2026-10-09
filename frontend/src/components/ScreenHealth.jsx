@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import FocusTimer from './FocusTimer';
 import HydrationTracker from './HydrationTracker';
 
 const ScreenHealth = () => {
+  const [strain, setStrain] = useState({ level: 'Low', recommendation: 'Monitor screen time' });
   return (
     <div className="row gy-4">
       <div className="col-lg-8">
@@ -17,7 +18,7 @@ const ScreenHealth = () => {
                 Track screen time, set break reminders, and stay hydrated while keeping eye strain low.
               </p>
             </div>
-            <a className="btn btn-accent align-self-start" href="/">
+            <a className="btn btn-accent align-self-start flex-shrink-0" href="/">
               <i className="fas fa-arrow-left me-2"></i>Home
             </a>
           </div>
@@ -25,7 +26,7 @@ const ScreenHealth = () => {
 
         <div className="row g-4 mb-4">
           <div className="col-md-6">
-            <FocusTimer />
+            <FocusTimer onStrainChange={setStrain} />
           </div>
           <div className="col-md-6">
             <HydrationTracker />
@@ -42,7 +43,7 @@ const ScreenHealth = () => {
               <div className="glass-card p-3">
                 <p className="small-note mb-2">Current Risk:</p>
                 <p className="text-white mb-0">
-                  <strong id="strainLevel"> Low</strong>
+                  <strong id="strainLevel" style={{ color: strain.color }}>{strain.level}</strong>
                 </p>
               </div>
             </div>
@@ -50,14 +51,14 @@ const ScreenHealth = () => {
               <div className="glass-card p-3">
                 <p className="small-note mb-2">Status:</p>
                 <p className="text-white mb-0">
-                  <strong id="strainRecommendation">Monitor screen time</strong>
+                  <strong id="strainRecommendation">{strain.recommendation}</strong>
                 </p>
               </div>
             </div>
           </div>
           <div className="mt-3">
             <p className="small-note">
-              <strong>How it works:</strong>
+              <strong>How it works: </strong>
               Risk level increases with continuous screen time.
               Low: &lt;20 min | Medium: 20–40 min | High: 40+ min.
               Use the break reminder and hydration tracker for healthier screen habits.
@@ -67,7 +68,7 @@ const ScreenHealth = () => {
       </div>
 
       <div className="col-lg-4">
-        <div className="glass-card p-4 h-100">
+        <div className="glass-card p-4">
           <h5 className="mb-3">
             <i className="fas fa-lightbulb text-accent me-2"></i>
             Screen Health Tips

@@ -105,10 +105,13 @@ document.addEventListener('DOMContentLoaded', function() {
         sendBtn.textContent = 'Sending...';
         
         try {
+            const tokenResponse = await fetch('/api/csrf/', { credentials: 'same-origin' });
+            const token = await tokenResponse.json();
             const response = await fetch('/api/contact/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': token.csrfToken,
                 },
                 body: JSON.stringify({ name, email, message })
             });
