@@ -78,116 +78,45 @@ const HydrationTracker = () => {
       showToast('All hydration data reset', 'info');
     }
   };
-  const getProgressColor = () => todayGlasses / target >= 0.75 ? 'linear-gradient(90deg, #4ad7a8, #38a169)' :
-    todayGlasses / target >= 0.5 ? 'linear-gradient(90deg, #ecc94b, #d69e2e)' : 'linear-gradient(90deg, #fc8181, #e53e3e)';
   const getStreakIcon = () => streak >= 30 ? 'fa-trophy' : streak >= 14 ? 'fa-fire' : streak >= 7 ? 'fa-hand-fist' : streak >= 3 ? 'fa-star' : 'fa-droplet';
   const percentage = Math.min(todayGlasses / target * 100, 100);
 
   return (
-    <div className="glass-card p-4 h-100">
-      <h5 className="mb-3">
-        <i className="fas fa-droplet text-accent me-2"></i>
-        Hydration Reminder
-      </h5>
-
-      <p className="small-note mb-3">
-        Aim for 8 glasses of water while working at your screen.
+    <section className="glass-card">
+      <div className="card-heading">
+        <h2><i className="fas fa-droplet" aria-hidden="true" />Water tracker</h2>
+        <span className="status-pill"><i className={'fas ' + getStreakIcon()} aria-hidden="true" />{streak} {streak === 1 ? 'day' : 'days'}</span>
+      </div>
+      <div className="water-tally"><strong>{todayGlasses}</strong> / {target} glasses today</div>
+      <div className="water-progress-label"><span>Daily progress</span><span>{todayGlasses >= target ? 'Goal Met!' : (target - todayGlasses) + ' remaining'}</span></div>
+      <div className="progress">
+        <div className="progress-bar" role="progressbar" aria-label="Daily water goal" aria-valuemin={0} aria-valuemax={target}
+          aria-valuenow={todayGlasses} style={{ width: percentage + '%' }} />
+      </div>
+      <div className="water-controls">
+        <button className="btn btn-accent" onClick={addGlass}>+ Add Glass</button>
+        <button className="btn btn-outline-light" onClick={reset}>Reset Today</button>
+      </div>
+      <p className="tracking-caption" style={{ color: todayGlasses >= target ? '#65e2b7' : undefined }}>
+        {todayGlasses >= target ? 'Goal reached! ' + streak + ' day streak!' : todayGlasses + (todayGlasses === 1 ? ' glass' : ' glasses') + ' - Keep going!'}
       </p>
-
-      {/* Streak Display */}
-      <div className="d-flex justify-content-between align-items-center mb-3 p-2" style={{ 
-        background: 'rgba(74,215,168,0.1)', 
-        borderRadius: '8px',
-        border: '1px solid rgba(74,215,168,0.2)'
-      }}>
-        <span>
-          <i className={'fas ' + getStreakIcon()} style={{ fontSize: '1.2rem' }} aria-hidden="true" />
-          <span className="ms-2">Daily Streak</span>
-        </span>
-        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4ad7a8' }}>
-          {streak} {streak === 1 ? 'day' : 'days'}
-        </span>
-      </div>
-
-      <div className="progress mb-3" style={{ height: '1.5rem' }}>
-        <div
-          className="progress-bar"
-          role="progressbar"
-          style={{
-            width: `${percentage}%`,
-            background: getProgressColor()
-          }}
-        >
-          {Math.round(percentage)}%
-        </div>
-      </div>
-
-      <div className="d-flex justify-content-between mb-2">
-        <p className="mb-0">
-          <strong>{todayGlasses}</strong> / {target} glasses today
-        </p>
-        <p className="small-note mb-0">
-          {todayGlasses >= target ? 'Goal Met!' : `${target - todayGlasses} remaining`}
-        </p>
-      </div>
-
-      <div className="d-flex flex-wrap gap-2 mb-3">
-        <button className="btn btn-accent btn-sm" onClick={addGlass}>
-          + Add Glass
-        </button>
-        <button className="btn btn-outline-light btn-sm" onClick={reset}>
-          Reset Today
-        </button>
-        <button className="btn btn-outline-danger btn-sm" onClick={resetAll}>
-          Reset All
-        </button>
-      </div>
-
-      <div
-        className="status-pill"
-        style={{
-          background: todayGlasses >= target ? 'rgba(74,215,168,0.2)' : 'rgba(255,255,255,0.08)',
-          color: todayGlasses >= target ? '#4ad7a8' : 'rgba(230,248,255,0.72)'
-        }}
-      >
-        {todayGlasses >= target 
-          ? `Goal reached! ${streak} day streak!` 
-          : `${todayGlasses} glasses - Keep going!`}
-      </div>
-
-      {/* Weekly History */}
-      <div className="mt-3 pt-3 border-top border-secondary">
-        <p className="small-note mb-2">This Week</p>
-        <div className="d-flex justify-content-between">
+      <details className="tracker-history">
+        <summary>Your last 7 days</summary>
+        <div className="week-grid">
           {Array.from({ length: 7 }, (_, index) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (6 - index));
-            const dateStr = date.toDateString();
-            const count = history[dateStr] || 0;
-            const isToday = dateStr === new Date().toDateString();
-            
-            return (
-              <div key={index} className="text-center" style={{ flex: 1 }}>
-                <div style={{ 
-                  fontSize: '10px', 
-                  color: isToday ? '#4ad7a8' : 'rgba(255,255,255,0.5)',
-                  fontWeight: isToday ? 'bold' : 'normal'
-                }}>
-                  {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                </div>
-                <div style={{ 
-                  fontSize: '16px', 
-                  fontWeight: 'bold',
-                  color: count >= target ? '#4ad7a8' : count > 0 ? '#ecc94b' : '#6c757d'
-                }}>
-                  {count > 0 ? count : '-'}
-                </div>
-              </div>
-            );
+            const day = new Date();
+            day.setDate(day.getDate() - (6 - index));
+            const key = day.toDateString();
+            const count = history[key] || 0;
+            const isToday = key === new Date().toDateString();
+            return <div key={key} className={'week-day' + (isToday ? ' today' : '')}>
+              <span>{day.toLocaleDateString('en-US', { weekday: 'short' })}</span><strong>{count || '–'}</strong>
+            </div>;
           })}
         </div>
-      </div>
-    </div>
+        <button className="btn btn-outline-danger" onClick={resetAll}>Reset All</button>
+      </details>
+    </section>
   );
 };
 

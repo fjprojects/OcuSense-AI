@@ -2,6 +2,8 @@
 
 A Django and React app for screen breaks, hydration tracking, camera-based blink monitoring, and medicine reminders.
 
+The interface uses a consistent OcuSense identity and a compact dark theme. Focus and water controls lead the screen-health page; camera controls, preview, calibration, and readings share one workspace. The reminder page pairs a short form with saved schedules, and feedback keeps inline validation, draft recovery, and confirmation. The mobile menu, skip link, visible keyboard focus, and route scroll reset support navigation on narrow screens.
+
 ## Local setup
 
 Use Python 3.12 or newer and Node.js 22. Run from the repository root:

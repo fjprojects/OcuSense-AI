@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import PageHeader from './PageHeader';
 import { useToast } from './Toast';
 import { api } from '../services/api';
 
@@ -56,73 +57,66 @@ const Contact = () => {
   };
 
   return (
-    <div className="row gy-4">
-      <div className="col-lg-7">
-        <div className="glass-card p-5 mb-4">
-          <p className="text-uppercase text-accent mb-3 small-note">Contact and feedback</p>
-          <h1 className="section-heading mb-3">Help improve OcuSense</h1>
-          <p className="small-note mb-0">Tell us what works, report an issue, or share an idea for healthier screen habits.</p>
-        </div>
-        <div className="glass-card p-4">
-          <h2 className="h5 mb-2">Send feedback</h2>
-          <p className="small-note mb-4">All fields are required. Your message is shared privately with the project team.</p>
+    <>
+      <PageHeader eyebrow="Contact and feedback" title="Help improve OcuSense"
+        description="Report an issue, share an idea, or tell us what is working for you." />
+      <div className="split-layout">
+        <section className="glass-card contact-card">
+          <div className="card-heading"><h2>Send feedback</h2><span className="status-pill neutral"><i className="fas fa-lock" aria-hidden="true" />Private</span></div>
           {confirmation && <div className="alert alert-success" role="status">{confirmation}</div>}
           {submitError && <div className="alert alert-danger" role="alert">{submitError} Your draft is still here; please try again.</div>}
           <form ref={form} onSubmit={handleSubmit} noValidate aria-busy={isSubmitting}>
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label">Name</label>
-              <input type="text" id="name" className="form-control" autoComplete="name" required maxLength={100}
-                placeholder="Your name" value={formData.name} onChange={handleChange} disabled={isSubmitting}
-                aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : undefined} />
-              {errors.name && <p id="name-error" className="field-error mt-2 mb-0">{errors.name}</p>}
+            <div className="form-pair mb-3">
+              <div>
+                <label htmlFor="name" className="form-label">Name</label>
+                <input type="text" id="name" className="form-control" autoComplete="name" required maxLength={100}
+                  placeholder="Your name" value={formData.name} onChange={handleChange} disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : undefined} />
+                {errors.name && <p id="name-error" className="field-error mt-2 mb-0">{errors.name}</p>}
+              </div>
+              <div>
+                <label htmlFor="email" className="form-label">Email</label>
+                <input type="email" id="email" className="form-control" autoComplete="email" required maxLength={254}
+                  placeholder="you@example.com" value={formData.email} onChange={handleChange} disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'email-error' : undefined} />
+                {errors.email && <p id="email-error" className="field-error mt-2 mb-0">{errors.email}</p>}
+              </div>
             </div>
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">Email</label>
-              <input type="email" id="email" className="form-control" autoComplete="email" required maxLength={254}
-                placeholder="you@example.com" value={formData.email} onChange={handleChange} disabled={isSubmitting}
-                aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'email-error' : undefined} />
-              {errors.email && <p id="email-error" className="field-error mt-2 mb-0">{errors.email}</p>}
-            </div>
-            <div className="mb-3">
+            <div>
               <label htmlFor="message" className="form-label">Message</label>
               <textarea id="message" className="form-control" rows="5" required maxLength={5000}
-                placeholder="What would you like to share?" value={formData.message} onChange={handleChange} disabled={isSubmitting}
+                placeholder="What happened, or what could we improve?" value={formData.message} onChange={handleChange} disabled={isSubmitting}
                 aria-invalid={Boolean(errors.message)} aria-describedby={'message-hint' + (errors.message ? ' message-error' : '')} />
               <p id="message-hint" className="small-note mt-2 mb-0">Up to 5,000 characters. Please avoid sharing sensitive health information.</p>
               {errors.message && <p id="message-error" className="field-error mt-2 mb-0">{errors.message}</p>}
             </div>
-            <button type="submit" className="btn btn-accent" disabled={isSubmitting}>
-              {isSubmitting ? <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />Sending…</> : 'Send feedback'}
-            </button>
+            <div className="contact-submit">
+              <p className="small-note">All fields are required.</p>
+              <button type="submit" className="btn btn-accent" disabled={isSubmitting}>
+                {isSubmitting ? <><span className="spinner-border spinner-border-sm" aria-hidden="true" />Sending…</> : <>Send feedback <i className="fas fa-arrow-right" aria-hidden="true" /></>}
+              </button>
+            </div>
           </form>
-        </div>
-      </div>
-      <div className="col-lg-5">
-        <div className="glass-card p-4 feature-list-card">
-          <h2 className="h5 mb-3">Useful details to include</h2>
-          <ul className="small-note ps-3 mb-4">
-            <li className="mb-2">The page or feature you were using.</li>
-            <li className="mb-2">What happened and what you expected.</li>
-            <li>Your device and browser, if the issue affects the screen or camera.</li>
-          </ul>
-          <p className="small-note">Feedback helps improve this project. Submitting this form does not send an automatic email response.</p>
+        </section>
+        <aside className="glass-card contact-guide">
+          <p className="eyebrow">Make your message useful</p>
+          <h2>A few details go a long way</h2>
+          <ol>
+            <li>The page or feature you were using.</li>
+            <li>What happened and what you expected.</li>
+            <li>Your device and browser, for screen or camera issues.</li>
+          </ol>
+          <p className="small-note mb-4">Your feedback is shared with the project team. This form does not send an automatic email response.</p>
           <a className="btn btn-outline-light" href="https://github.com/fjprojects/OcuSense-AI" target="_blank" rel="noopener noreferrer">
-            <i className="fab fa-github me-2" aria-hidden="true" />Project repository
+            <i className="fab fa-github" aria-hidden="true" />Project repository
           </a>
-        </div>
-        <div className="glass-card p-4">
-          <h2 className="h5 mb-3">Connect with the project author</h2>
-          <div className="d-flex flex-wrap gap-2">
-            <a className="btn btn-outline-light" href="https://www.linkedin.com/in/francis-job/" target="_blank" rel="noopener noreferrer">
-              <i className="fab fa-linkedin me-2" aria-hidden="true" />LinkedIn
-            </a>
-            <a className="btn btn-outline-light" href="https://www.instagram.com/francissjob/" target="_blank" rel="noopener noreferrer">
-              <i className="fab fa-instagram me-2" aria-hidden="true" />Instagram
-            </a>
+          <div className="social-links">
+            <a href="https://www.linkedin.com/in/francis-job/" target="_blank" rel="noopener noreferrer"><i className="fab fa-linkedin me-1" aria-hidden="true" />LinkedIn</a>
+            <a href="https://www.instagram.com/francissjob/" target="_blank" rel="noopener noreferrer"><i className="fab fa-instagram me-1" aria-hidden="true" />Instagram</a>
           </div>
-        </div>
+        </aside>
       </div>
-    </div>
+    </>
   );
 };
 

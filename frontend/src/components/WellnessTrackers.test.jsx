@@ -57,7 +57,7 @@ test('hydration preserves history on mount, resets at midnight, and keeps the ea
   expect(screen.getByText('0 glasses - Keep going!')).toBeInTheDocument();
   expect(screen.getByText('3 days')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '+ Add Glass' }));
-  expect(screen.getByText('1 glasses - Keep going!')).toBeInTheDocument();
+  expect(screen.getByText('1 glass - Keep going!')).toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem('hydrationState')).history[today]).toBe(8);
 });
 

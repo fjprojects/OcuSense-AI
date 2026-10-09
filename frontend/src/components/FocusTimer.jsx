@@ -9,7 +9,7 @@ const readFocusState = () => {
   catch { return {}; }
 };
 
-const FocusTimer = ({ onStrainChange }) => {
+const FocusTimer = ({ onStrainChange, showStrain = true }) => {
   const [saved] = useState(readFocusState);
   const [seconds, setSeconds] = useState(saved.seconds || 0);
   const [isRunning, setIsRunning] = useState(saved.isRunning || false);
@@ -107,67 +107,34 @@ const FocusTimer = ({ onStrainChange }) => {
   };
 
   return (
-    <div className="glass-card p-4 h-100">
-      <h5 className="mb-3">
-        <i className="fas fa-clock text-accent me-2"></i>
-        Focus Session Tracker
-      </h5>
-
-      <div className="display-5 mb-2" style={{ fontFamily: 'Courier New, monospace', fontWeight: 'bold' }}>
-        {formatTime(seconds)}
+    <section className="glass-card">
+      <div className="card-heading">
+        <h2><i className="fas fa-clock" aria-hidden="true" />Focus session</h2>
+        <span className={'status-pill' + (isRunning && !isPaused ? '' : ' neutral')}>{isPaused ? 'Paused' : isRunning ? 'In focus' : 'Ready to begin'}</span>
       </div>
-
-      <p className="small-note mb-3">
-        Total focus time today: <strong>{formatTime(totalSeconds)}</strong>
-      </p>
-
-      <div className="form-check mb-3">
-        <input
-          className="form-check-input"
-          type="checkbox"
-          id="enableBreakReminder"
-          checked={reminderEnabled}
-          onChange={(e) => setReminderEnabled(e.target.checked)}
-        />
-        <label className="form-check-label" htmlFor="enableBreakReminder">
-          Enable 20-20-20 Reminder
-        </label>
+      <div className="timer-value">{formatTime(seconds)}</div>
+      <div className="tracker-stats">
+        <div><span>Total focus time</span><strong>{formatTime(totalSeconds)}</strong></div>
+        <div><span>Next break</span><strong>{formatBreak(nextBreak)}</strong></div>
       </div>
-
-      <h6 className="mb-2">Next Break</h6>
-      <div className="display-6 mb-2" style={{ fontFamily: 'Courier New, monospace' }}>
-        {formatBreak(nextBreak)}
-      </div>
-
-      <p className="small-note mb-3" style={{ color: reminderEnabled ? '#4ad7a8' : '#fc8181' }}>
-        {reminderEnabled ? ' Reminder Enabled' : ' Reminder Disabled'}
-      </p>
-
-      <div className="d-flex flex-wrap gap-2">
-        <button className="btn btn-outline-light btn-sm" onClick={handleStart} disabled={isRunning && !isPaused}>
+      <div className="focus-controls">
+        <button className="btn btn-accent" onClick={handleStart} disabled={isRunning && !isPaused}>
           {isPaused ? 'Resume' : 'Start'}
         </button>
-        <button className="btn btn-warning btn-sm" onClick={handlePause} disabled={!isRunning || isPaused}>
-          Pause
-        </button>
-        <button className="btn btn-outline-light btn-sm" onClick={handleReset}>
-          Reset
-        </button>
+        <button className="btn btn-outline-light" onClick={handlePause} disabled={!isRunning || isPaused}>Pause</button>
+        <button className="btn btn-outline-light" onClick={handleReset}>Reset</button>
       </div>
-
-      <div className="mt-3 pt-3 border-top border-secondary">
-        <div className="row g-2">
-          <div className="col-6">
-            <span className="small-note">Strain Level:</span>
-            <div style={{ color: strainLevel.color, fontWeight: 'bold' }}>{strainLevel.level}</div>
-          </div>
-          <div className="col-6">
-            <span className="small-note">Recommendation:</span>
-            <div style={{ color: strainLevel.color }}>{strainLevel.recommendation}</div>
-          </div>
-        </div>
+      <div className="reminder-switch">
+        <input className="form-check-input" type="checkbox" id="enableBreakReminder"
+          checked={reminderEnabled} onChange={event => setReminderEnabled(event.target.checked)} />
+        <label htmlFor="enableBreakReminder">Enable 20-20-20 Reminder</label>
       </div>
-    </div>
+      <p className="tracking-caption">{reminderEnabled ? 'A reminder every 20 minutes to look away for 20 seconds.' : 'Break reminders are off. Your timer will keep running.'}</p>
+      {showStrain && <div className="strain-banner">
+        <div><p>Strain level: <strong style={{ color: strainLevel.color }}>{strainLevel.level}</strong></p>
+          <p className="small-note">{strainLevel.recommendation}</p></div>
+      </div>}
+    </section>
   );
 };
 

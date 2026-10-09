@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ocusense-public-v4';
+const CACHE_NAME = 'ocusense-public-v5';
 const ASSETS = ['/static/icon.svg', '/static/manifest.json'];
 
 self.addEventListener('install', event => {

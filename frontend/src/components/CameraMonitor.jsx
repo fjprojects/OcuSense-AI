@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import PageHeader from './PageHeader';
 import { useToast } from './Toast';
 import * as faceMesh from '@mediapipe/face_mesh';
 import * as drawingUtils from '@mediapipe/drawing_utils';
@@ -300,258 +301,66 @@ const CameraMonitor = () => {
   const hasMetrics = isCameraActive && faceDetected;
   const rateColor = !hasMetrics ? '#9aaebf' : blinkRate >= 12 && blinkRate <= 25 ? '#4ad7a8' : blinkRate > 8 ? '#ecc94b' : '#fc8181';
 
-  // ==================== RENDER ====================
   return (
-    <div className="row gy-4">
-      <div className="col-lg-8">
-        <div className="glass-card p-5 mb-4">
-          <p className="text-uppercase text-accent mb-3 small-note">Camera Monitoring</p>
-          <h1 className="section-heading mb-3">Live blink and distance tracking</h1>
-          <p className="small-note">Start your camera session and monitor live eye wellness data.</p>
-          <div className="mt-4 d-flex flex-wrap gap-3">
-            <span className="status-pill"><i className="fas fa-video me-2"></i>Live detection</span>
-            <span className="status-pill"><i className="fas fa-eye me-2"></i>Blink tracking</span>
-            <span className="status-pill"><i className="fas fa-ruler-vertical me-2"></i>Distance alerts</span>
-            <span className="status-pill" style={{ 
-              background: faceDetected ? 'rgba(74,215,168,0.2)' : 'rgba(255,255,255,0.08)',
-              color: faceDetected ? '#4ad7a8' : 'rgba(230,248,255,0.72)'
-            }}>
-              <i className={`fas ${faceDetected ? 'fa-smile' : 'fa-meh'} me-2`}></i>
-              {faceDetected ? 'Face detected' : 'No face'}
+    <>
+      <PageHeader eyebrow="Your screen setup" title="Camera monitor"
+        description="Track your blinks and calibrate a distance estimate, with camera processing on your device." />
+      <div className="camera-layout">
+        <section className="glass-card">
+          <div className="camera-toolbar">
+            <span className={'status-pill' + (isCameraActive ? '' : ' neutral')} style={{ color: isCameraActive ? getStatusColor() : undefined }}>
+              <i className="fas fa-circle" style={{ fontSize: 6 }} aria-hidden="true" />{status}
             </span>
-          </div>
-        </div>
-
-        <div className="glass-card p-4 mb-4">
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-              <h5>Camera controls</h5>
-              <p className="small-note mb-0">Track blinks and calibrate a measured distance for distance estimates.</p>
-            </div>
-            <div className="d-flex gap-2">
-              <button
-                className={`btn ${isCameraActive ? 'btn-danger' : 'btn-primary'}`}
-                onClick={isCameraActive ? stopCamera : startCamera}
-                disabled={isLoading}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease',
-                  border: 'none',
-                  minWidth: '140px'
-                }}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <i className={`fas ${isCameraActive ? 'fa-stop' : 'fa-play'} me-2`}></i>
-                    {isCameraActive ? 'Stop Camera' : 'Start Camera'}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card p-3 mb-4">
-          <label htmlFor="camera-calibration" className="small-note">Measured distance from your camera (cm)</label>
-          <div className="d-flex gap-2 mt-2">
-            <input id="camera-calibration" type="number" min="10" max="200"
-              className="form-control" style={{ maxWidth: '120px' }} value={calibrationDistance}
-              onChange={event => setCalibrationDistance(event.target.value)} />
-            <button className="btn btn-outline-light" onClick={calibrateDistance} disabled={!faceDetected}>
-              Calibrate distance
+            <button className={'btn ' + (isCameraActive ? 'btn-outline-danger' : 'btn-accent')}
+              onClick={isCameraActive ? stopCamera : startCamera} disabled={isLoading}>
+              {isLoading ? <><span className="spinner-border spinner-border-sm" aria-hidden="true" />Loading...</> :
+                <><i className={'fas ' + (isCameraActive ? 'fa-stop' : 'fa-play')} aria-hidden="true" />{isCameraActive ? 'Stop Camera' : 'Start Camera'}</>}
             </button>
           </div>
-          <p className="small-note mb-0 mt-2">Measure your current distance, enter it, and calibrate while facing the camera.
-            Estimates depend on camera position and head angle.</p>
-        </div>
-
-        <div className="glass-card p-4 mb-4" style={{ position: 'relative' }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            style={{
-              width: '100%',
-              minHeight: '320px',
-              borderRadius: '20px',
-              background: '#020814',
-              display: isCameraActive ? 'block' : 'none'
-            }}
-          />
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              left: '20px',
-              width: 'calc(100% - 40px)',
-              height: 'calc(100% - 40px)',
-              borderRadius: '20px',
-              pointerEvents: 'none',
-              display: isCameraActive ? 'block' : 'none'
-            }}
-            width={640}
-            height={480}
-          />
-          {!isCameraActive && (
-            <div style={{
-              minHeight: '320px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#6c757d',
-              borderRadius: '20px',
-              background: '#020814'
-            }}>
-              <div className="text-center">
-                <i className="fas fa-camera fa-4x mb-3" style={{ opacity: 0.3 }}></i>
-                <p>Camera inactive</p>
-                <p className="small">Click "Start Camera" to begin</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card p-4">
-          <h5 className="mb-3">Live Status</h5>
-          <div className="row g-3">
-            <div className="col-md-4">
-              <div className="glass-card p-3">
-                <p className="small-note mb-1">Status</p>
-                <strong style={{ color: getStatusColor() }}>{status}</strong>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="glass-card p-3">
-                <p className="small-note mb-1">Session Time</p>
-                <strong>{formatTime(sessionTime)}</strong>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="glass-card p-3">
-                <p className="small-note mb-1">Blink Count</p>
-                <strong>{blinkCount}</strong>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="glass-card p-3">
-                <p className="small-note mb-1">Blink Rate</p>
-                <strong style={{ color: rateColor }}>
-                  {hasMetrics ? blinkRate : '--'} / min
-                </strong>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="glass-card p-3">
-                <p className="small-note mb-1">Face Distance</p>
-                <strong style={{ color: distanceColor }}>{distance}</strong>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="glass-card p-3">
-                <p className="small-note mb-1">Posture</p>
-                <strong>
-                  {hasMetrics ? posture.charAt(0).toUpperCase() + posture.slice(1) + ' (' + postureScore + '%)' : 'Waiting for a face'}
-                </strong>
-              </div>
-            </div>
+          <div className="camera-preview">
+            <video ref={videoRef} autoPlay muted playsInline style={{ display: isCameraActive ? 'block' : 'none' }} aria-label="Your camera preview" />
+            <canvas ref={canvasRef} width={640} height={480} style={{ display: isCameraActive ? 'block' : 'none' }} aria-hidden="true" />
+            {!isCameraActive && <div className="camera-placeholder">
+              <i className="fas fa-video" aria-hidden="true" /><h2>Your camera is off</h2>
+              <p>Start a session when you are ready. Your browser will ask for camera access.</p>
+            </div>}
           </div>
+          <div className="camera-calibration">
+            <label htmlFor="camera-calibration">Measured distance from your camera (cm)</label>
+            <div className="calibration-controls">
+              <input id="camera-calibration" type="number" min="10" max="200" className="form-control" value={calibrationDistance}
+                onChange={event => setCalibrationDistance(event.target.value)} />
+              <button className="btn btn-outline-light" onClick={calibrateDistance} disabled={!faceDetected}>Calibrate distance</button>
+            </div>
+            <p className="tracking-caption">Measure your distance, enter it, and calibrate while facing the camera. Estimates vary with camera position and head angle.</p>
+          </div>
+        </section>
+        <div className="stack">
+          <section className="glass-card">
+            <div className="card-heading"><h2>Live readings</h2><span className="session-duration">{formatTime(sessionTime)}</span></div>
+            <div className="metric-grid">
+              <div className="metric"><p>Blink Count</p><strong>{blinkCount}</strong><small>This session</small></div>
+              <div className="metric"><p>Blink Rate</p><strong style={{ color: rateColor }}>{hasMetrics ? blinkRate : '--'} / min</strong><small>Live tracking</small></div>
+              <div className="metric"><p>Face Distance</p><strong style={{ color: hasMetrics ? distanceColor : '#a5b6bc' }}>{distance}</strong><small>{faceDetected ? 'Face detected' : 'No face detected'}</small></div>
+              <div className="metric"><p>Posture</p><strong>{hasMetrics ? posture.charAt(0).toUpperCase() + posture.slice(1) + ' (' + postureScore + '%)' : 'Waiting for a face'}</strong><small>Camera estimate</small></div>
+            </div>
+          </section>
+          <section className="glass-card camera-tips">
+            <h2><i className="fas fa-lightbulb text-accent me-2" aria-hidden="true" />Session tips</h2>
+            <ul className="list-unstyled small-note mb-0">
+              {!hasMetrics && <li>Start the camera and keep your face in view to see tracking tips.</li>}
+              {hasMetrics && blinkRate < 12 && blinkRate > 0 && <li>Try to blink more often (target: 12-25 blinks/min)</li>}
+              {hasMetrics && blinkRate > 25 && <li>High blink rate! You might be tired. Take a break.</li>}
+              {hasMetrics && blinkRate >= 12 && blinkRate <= 25 && <li>Great blink rate! Keep it up!</li>}
+              {hasMetrics && posture === 'too_close' && <li>Move back from the screen (ideal: 40-60 cm)</li>}
+              {hasMetrics && posture === 'poor' && <li>Straighten your posture for better ergonomics</li>}
+              {hasMetrics && posture === 'good' && <li>Comfortable camera setup. Keep taking regular breaks.</li>}
+            </ul>
+          </section>
         </div>
       </div>
-
-      <div className="col-lg-4">
-        <div className="glass-card p-4 mb-4">
-          <h5 className="mb-3">Health Summary</h5>
-          
-          <div className="mb-3">
-            <div className="d-flex justify-content-between">
-              <span className="small-note">Blink Rate</span>
-              <span style={{ color: rateColor }}>
-                {hasMetrics ? blinkRate : '--'} / min
-              </span>
-            </div>
-            <div className="progress" style={{ height: '6px' }}>
-              <div className="progress-bar" style={{ 
-                width: `${hasMetrics ? Math.min(100, (blinkRate / 25) * 100) : 0}%`,
-                background: blinkRate >= 12 && blinkRate <= 25 ? '#4ad7a8' : '#ecc94b'
-              }}></div>
-            </div>
-            <small className="text-muted">Target: 12-25 blinks/min</small>
-          </div>
-
-          <div className="mb-3">
-            <div className="d-flex justify-content-between">
-              <span className="small-note">Posture</span>
-              <span style={{ color: !hasMetrics ? '#9aaebf' : postureScore > 80 ? '#4ad7a8' : '#ecc94b' }}>
-                {hasMetrics ? postureScore + '%' : '--'}
-              </span>
-            </div>
-            <div className="progress" style={{ height: '6px' }}>
-              <div className="progress-bar" style={{ 
-                width: `${hasMetrics ? postureScore : 0}%`,
-                background: postureScore > 80 ? '#4ad7a8' : '#ecc94b'
-              }}></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card p-4">
-          <h5 className="mb-3">Real-time Tips</h5>
-          <ul className="list-unstyled small-note mb-0">
-            {!hasMetrics && <li>Start the camera and keep your face in view to see tracking tips.</li>}
-            {hasMetrics && blinkRate < 12 && blinkRate > 0 && (
-              <li className="mb-2">
-                <i className="fas fa-circle text-accent me-2" style={{ color: '#ecc94b' }}></i>
-                Try to blink more often (target: 12-25 blinks/min)
-              </li>
-            )}
-            {hasMetrics && blinkRate > 25 && (
-              <li className="mb-2">
-                <i className="fas fa-circle text-accent me-2" style={{ color: '#ecc94b' }}></i>
-                High blink rate! You might be tired. Take a break.
-              </li>
-            )}
-            {hasMetrics && blinkRate >= 12 && blinkRate <= 25 && (
-              <li className="mb-2">
-                <i className="fas fa-circle text-accent me-2" style={{ color: '#4ad7a8' }}></i>
-                Great blink rate! Keep it up!
-              </li>
-            )}
-            {hasMetrics && posture === 'too_close' && (
-              <li className="mb-2">
-                <i className="fas fa-circle text-accent me-2" style={{ color: '#fc8181' }}></i>
-                Move back from the screen (ideal: 40-60 cm)
-              </li>
-            )}
-            {hasMetrics && posture === 'poor' && (
-              <li className="mb-2">
-                <i className="fas fa-circle text-accent me-2" style={{ color: '#ecc94b' }}></i>
-                Straighten your posture for better ergonomics
-              </li>
-            )}
-            {posture === 'good' && hasMetrics && blinkRate >= 12 && blinkRate <= 25 && (
-              <li className="mb-2">
-                <i className="fas fa-circle text-accent me-2" style={{ color: '#4ad7a8' }}></i>
-                All metrics are optimal! Great job!
-              </li>
-            )}
-          </ul>
-        </div>
-      </div>
-    </div>
+      <p className="privacy-note"><i className="fas fa-shield-halved" aria-hidden="true" />Camera frames stay in this browser. These readings support screen habits and are not a medical assessment.</p>
+    </>
   );
 };
 
