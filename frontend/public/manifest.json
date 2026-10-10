@@ -1,14 +1,14 @@
 {
-  "name": "Ocusense Arena",
-  "short_name": "Ocusense",
-  "description": "AI-powered eye wellness assistant",
+  "name": "OcuSense",
+  "short_name": "OcuSense",
+  "description": "Everyday tools for healthier screen habits",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#04090f",
-  "theme_color": "#0f5132",
+  "background_color": "#081216",
+  "theme_color": "#091519",
   "icons": [
     {
-      "src": "/static/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

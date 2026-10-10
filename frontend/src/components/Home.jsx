@@ -1,105 +1,59 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Home = () => {
-  const features = [
-    {
-      icon: 'fa-clock',
-      title: 'Screen Health',
-      desc: 'Monitor screen time, viewing distance, and eye strain analysis',
-      link: '/screen-health'
-    },
-    {
-      icon: 'fa-video',
-      title: 'Camera Monitor',
-      desc: 'Launch live camera blink detection and face distance monitoring',
-      link: '/camera-monitor'
-    },
-    {
-      icon: 'fa-pills',
-      title: 'Medicine Reminder',
-      desc: 'Schedule reminders for eye care medication and track alerts',
-      link: '/medicine-reminder'
-    }
-  ];
+const tools = [
+  { icon: 'fa-clock', title: 'Screen Health', description: 'Focus timers, break reminders, and daily water tracking.', path: '/screen-health', action: 'Start a session' },
+  { icon: 'fa-video', title: 'Camera Monitor', description: 'Blink tracking and calibrated distance estimates, on your device.', path: '/camera-monitor', action: 'Open the camera' },
+  { icon: 'fa-pills', title: 'Medicine Reminder', description: 'A simple schedule for your medicines, with alerts while the app is open.', path: '/medicine-reminder', action: 'Set a reminder' }
+];
 
-  return (
-    <>
-      <div className="row align-items-center gy-4">
-        <div className="col-lg-7">
-          <div className="glass-card hero-panel p-5">
-            <p className="text-uppercase text-accent mb-3 small-note">
-              AI-powered eye wellness assistant
-            </p>
-            <h1 className="display-5 fw-bold mb-3">Ocusense Arena</h1>
-            <p className="lead text-white-75 mb-4">
-              A modern dashboard for screen health, camera monitoring, wellness tracking,
-              and medicine scheduling with a polished, SaaS-ready interface.
-            </p>
-            <div className="d-flex flex-column flex-sm-row gap-3">
-              <Link className="btn btn-accent btn-lg" to="/screen-health">
-                Get Started
-              </Link>
-              <Link className="btn btn-outline-light btn-lg" to="/about">
-                Learn More
-              </Link>
-            </div>
-          </div>
+const Home = () => (
+  <>
+    <section className="home-hero" aria-labelledby="home-title">
+      <div>
+        <p className="eyebrow">Small habits. Healthier screen time.</p>
+        <h1 id="home-title">A healthier rhythm.<br /><span>One small habit<br className="d-none d-lg-block" /> at a time.</span></h1>
+        <p className="hero-description">Make room for a break, a glass of water, and a better screen setup. OcuSense keeps your everyday wellness tools in one place.</p>
+        <div className="hero-actions">
+          <Link className="btn btn-accent" to="/screen-health">Start a focus session <i className="fas fa-arrow-right" aria-hidden="true" /></Link>
+          <a className="btn btn-outline-light" href="#daily-tools">Explore the tools</a>
         </div>
-        <div className="col-lg-5">
-          <div className="glass-card p-4 h-100">
-            <h2 className="h4 section-heading mb-3">Why Ocusense Arena?</h2>
-            <ul className="list-unstyled small-note mb-0">
-              <li className="mb-3">
-                <i className="fas fa-check-circle text-success me-2"></i>
-                Dedicated pages for each feature.
-              </li>
-              <li className="mb-3">
-                <i className="fas fa-check-circle text-success me-2"></i>
-                Clean dashboard layout with glassmorphism panels.
-              </li>
-              <li>
-                <i className="fas fa-check-circle text-success me-2"></i>
-                Responsive navigation and modern SaaS styling.
-              </li>
-            </ul>
-          </div>
-        </div>
+        <p className="hero-footnote"><i className="fas fa-shield-halved" aria-hidden="true" /> Camera frames stay on your device.</p>
       </div>
-
-      <section className="mt-5">
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4">
-          <div>
-            <p className="text-uppercase text-accent mb-2">Feature overview</p>
-            <h2 className="section-heading">Explore each module</h2>
-            <p className="small-note">
-              Navigate to the dedicated module pages for focused workflows and clearer presentation.
-            </p>
-          </div>
+      <aside className="routine-panel" aria-label="A simple screen routine">
+        <p className="eyebrow">Your next screen session</p>
+        <h2>A little care goes a long way.</h2>
+        <div className="routine-step">
+          <span className="routine-number">01</span>
+          <div><h3>Focus, then look away</h3><p>Use a timer to make space for regular breaks.</p></div>
         </div>
-        <div className="row g-4">
-          {features.map((feature, index) => (
-            <div key={index} className="col-md-6 col-xl-4">
-              <div className="glass-card p-4 feature-card h-100">
-                <div className="d-flex align-items-center mb-3">
-                  <div className="icon me-3">
-                    <i className={`fas ${feature.icon}`}></i>
-                  </div>
-                  <div>
-                    <h5 className="mb-0">{feature.title}</h5>
-                  </div>
-                </div>
-                <p className="small-note mb-4">{feature.desc}</p>
-                <Link className="btn btn-outline-light" to={feature.link}>
-                  Open Module
-                </Link>
-              </div>
-            </div>
-          ))}
+        <div className="routine-step">
+          <span className="routine-number">02</span>
+          <div><h3>Keep water within reach</h3><p>Log each glass and follow your daily progress.</p></div>
         </div>
-      </section>
-    </>
-  );
-};
+        <div className="routine-step">
+          <span className="routine-number">03</span>
+          <div><h3>Check your screen setup</h3><p>Use the camera to track blinks and estimate your viewing distance.</p></div>
+        </div>
+      </aside>
+    </section>
+    <section id="daily-tools" aria-labelledby="tools-title">
+      <div className="section-intro"><h2 id="tools-title">Your everyday toolkit</h2><p>Choose what you need for this session.</p></div>
+      <div className="tool-grid">
+        {tools.map(tool => (
+          <Link key={tool.path} className="tool-card" to={tool.path}>
+            <div className="tool-icon"><i className={'fas ' + tool.icon} aria-hidden="true" /></div>
+            <div><h3>{tool.title}</h3><p>{tool.description}</p></div>
+            <div className="tool-link"><span>{tool.action}</span><i className="fas fa-arrow-right" aria-hidden="true" /></div>
+          </Link>
+        ))}
+      </div>
+    </section>
+    <section className="home-note" aria-label="Project feedback">
+      <div><h2>Help shape OcuSense</h2><p className="small-note">Something missing, or an idea to make it better? We'd like to hear it.</p></div>
+      <Link to="/contact">Share feedback <i className="fas fa-arrow-right ms-1" aria-hidden="true" /></Link>
+    </section>
+  </>
+);
 
 export default Home;
